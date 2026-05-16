@@ -1,0 +1,40 @@
+{
+  "name": "reddit-image-pwa",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "lint": "eslint .",
+    "proxy:start": "node proxy/server.mjs",
+    "worker:dev": "wrangler dev worker/index.js",
+    "worker:deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "embla-carousel-react": "^8.6.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-zoom-pan-pinch": "^3.7.0",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^25.8.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.59.3",
+    "wrangler": "^4.0.0"
+  }
+}

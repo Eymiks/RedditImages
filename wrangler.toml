@@ -1,0 +1,6 @@
+name = "reddit-image-pwa-proxy"
+main = "worker/index.js"
+compatibility_date = "2026-05-16"
+
+[observability]
+enabled = true

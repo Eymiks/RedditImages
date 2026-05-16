@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: reddit-image-pwa-proxy
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run proxy:start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
