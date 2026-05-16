@@ -100,20 +100,18 @@ async function fetchPublic(url: string): Promise<Response> {
     return directResponse;
   }
 
-  if (workerUrl) {
-    const proxied = new URL(`${workerUrl}/reddit`);
-    proxied.searchParams.set("url", url);
+  if (import.meta.env.DEV) {
     try {
-      return await fetch(proxied);
-    } catch (error) {
-      if (!import.meta.env.DEV) {
-        throw error;
-      }
+      return await fetch(`${publicUrl.pathname.replace(/^\/?/, "/reddit-public/")}${publicUrl.search}`);
+    } catch {
+      // Continue vers le proxy configure si le proxy Vite local est indisponible.
     }
   }
 
-  if (import.meta.env.DEV) {
-    return fetch(`${publicUrl.pathname.replace(/^\/?/, "/reddit-public/")}${publicUrl.search}`);
+  if (workerUrl) {
+    const proxied = new URL(`${workerUrl}/reddit`);
+    proxied.searchParams.set("url", url);
+    return fetch(proxied);
   }
 
   throw new Error("Configure VITE_WORKER_URL pour les appels publics Reddit en production.");

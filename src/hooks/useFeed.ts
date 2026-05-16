@@ -12,15 +12,18 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
   const seenIds = useRef(new Set<string>());
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   const feedKey = useMemo(() => JSON.stringify({ target, sort, period }), [period, sort, target]);
 
   const loadPage = useCallback(
     async (nextAfter: string | null, reset: boolean) => {
-      if (loadingRef.current || (!reset && !hasMoreRef.current)) {
+      if (!reset && (loadingRef.current || !hasMoreRef.current)) {
         return;
       }
 
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
       loadingRef.current = true;
       setIsLoading(true);
       setError(null);
@@ -32,21 +35,26 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
           period,
           after: nextAfter
         });
-
         if (reset) {
           seenIds.current = new Set();
         }
 
-        setPosts((current) => {
-          const next = reset ? [] : [...current];
-          result.posts.forEach((post) => {
-            if (!seenIds.current.has(post.id)) {
-              seenIds.current.add(post.id);
-              next.push(post);
-            }
-          });
-          return next;
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        const nextSeenIds = reset ? new Set<string>() : new Set(seenIds.current);
+        const unseenPosts = result.posts.filter((post) => {
+          if (nextSeenIds.has(post.id)) {
+            return false;
+          }
+
+          nextSeenIds.add(post.id);
+          return true;
         });
+
+        seenIds.current = nextSeenIds;
+        setPosts((current) => (reset ? unseenPosts : [...current, ...unseenPosts]));
         setAfter(result.after);
         hasMoreRef.current = Boolean(result.after);
         setHasMore(Boolean(result.after));
@@ -54,11 +62,15 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
           setError(result.notice);
         }
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Chargement impossible.");
+        if (requestId === requestIdRef.current) {
+          setError(loadError instanceof Error ? loadError.message : "Chargement impossible.");
+        }
       } finally {
-        loadingRef.current = false;
-        setIsLoading(false);
-        setIsInitialLoading(false);
+        if (requestId === requestIdRef.current) {
+          loadingRef.current = false;
+          setIsLoading(false);
+          setIsInitialLoading(false);
+        }
       }
     },
     [period, sort, target]
@@ -73,6 +85,8 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
   }, [after, hasMore, isLoading, loadPage]);
 
   useEffect(() => {
+    requestIdRef.current += 1;
+    loadingRef.current = false;
     seenIds.current = new Set();
     setPosts([]);
     setAfter(null);
