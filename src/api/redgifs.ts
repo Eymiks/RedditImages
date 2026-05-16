@@ -101,12 +101,12 @@ function rewriteRedgifsMediaUrl(url: string | undefined): string | undefined {
     return url;
   }
   const filename = match[1];
+  if (import.meta.env.DEV) {
+    return `/redgifs-media/${filename}`;
+  }
   const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, "");
   if (workerUrl) {
     return `${workerUrl}/redgifs-media/${filename}`;
-  }
-  if (import.meta.env.DEV) {
-    return `/redgifs-media/${filename}`;
   }
   return url;
 }
