@@ -87,7 +87,22 @@ export function ImageGrid({
             onClick={() => onOpen(index)}
             type="button"
           >
-            {post.assets[0]?.kind === "video" && post.assets[0].url ? (
+            {post.assets[0]?.source === "redgifs" ? (
+              <div className="flex h-full w-full items-center justify-center bg-black/40">
+                {post.assets[0].previewUrl ? (
+                  <img
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition duration-300 group-active:scale-105"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    src={post.assets[0].previewUrl}
+                  />
+                ) : null}
+                <span className="relative grid h-12 w-12 place-items-center rounded-full bg-black/65 text-white shadow-lg">
+                  <Play fill="currentColor" size={22} />
+                </span>
+              </div>
+            ) : post.assets[0]?.kind === "video" && post.assets[0].url ? (
               <video
                 className="h-full w-full object-cover"
                 loop

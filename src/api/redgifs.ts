@@ -76,7 +76,7 @@ async function resolveRedgifsMedia(id: string): Promise<ResolvedRedgifsMedia> {
 
   const json = (await response.json()) as RedgifsProxyResponse;
   const url = json.urls?.hd ?? json.urls?.sd;
-  const previewUrl = json.urls?.poster ?? json.urls?.thumbnail ?? json.urls?.vthumbnail;
+  const previewUrl = json.urls?.thumbnail ?? json.urls?.poster ?? json.urls?.vthumbnail;
 
   if (!url) {
     throw new Error("Redgifs ne fournit pas de video lisible.");
