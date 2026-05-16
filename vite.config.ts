@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
@@ -5,6 +6,8 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 const REDGIFS_API_BASE = "https://api.redgifs.com";
+const REDGIFS_MEDIA_BASE = "https://media.redgifs.com";
+const REDGIFS_MEDIA_FILENAME = /^[A-Za-z0-9-]+(?:\.(?:mp4|m4v|webm|jpg|jpeg|webp|png))$/;
 const USER_AGENT = "MyRedditImageApp/1.0";
 
 export default defineConfig({
@@ -134,16 +137,67 @@ function redgifsDevProxy(): Plugin {
     }
   }
 
+  async function handleRedgifsMediaRequest(request: IncomingMessage, response: ServerResponse) {
+    const filename = decodeURIComponent(request.url?.replace(/^\/redgifs-media\//, "") ?? "")
+      .split(/[?#]/)[0];
+
+    if (!REDGIFS_MEDIA_FILENAME.test(filename)) {
+      response.writeHead(400, { "Content-Type": "text/plain" });
+      response.end("Invalid Redgifs filename");
+      return;
+    }
+
+    try {
+      const requestHeaders: Record<string, string> = {
+        "User-Agent": USER_AGENT
+      };
+      const rangeHeader = request.headers.range;
+      if (typeof rangeHeader === "string") {
+        requestHeaders.Range = rangeHeader;
+      }
+
+      const upstream = await fetch(`${REDGIFS_MEDIA_BASE}/${filename}`, {
+        headers: requestHeaders
+      });
+
+      const responseHeaders: Record<string, string> = {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": upstream.ok ? "public, max-age=3600" : "no-store"
+      };
+      for (const header of ["content-type", "content-length", "content-range", "etag", "last-modified"]) {
+        const value = upstream.headers.get(header);
+        if (value) {
+          responseHeaders[header.replace(/(^|-)\w/g, (m) => m.toUpperCase())] = value;
+        }
+      }
+
+      response.writeHead(upstream.status, responseHeaders);
+
+      if (!upstream.body) {
+        response.end();
+        return;
+      }
+
+      Readable.fromWeb(upstream.body as unknown as Parameters<typeof Readable.fromWeb>[0]).pipe(response);
+    } catch (error) {
+      response.writeHead(502, { "Content-Type": "text/plain" });
+      response.end(error instanceof Error ? error.message : "Redgifs media proxy failed");
+    }
+  }
+
   return {
     name: "redgifs-dev-proxy",
     configureServer(server) {
       server.middlewares.use((request, response, next) => {
-        if (!request.url?.startsWith("/redgifs-public/gifs/")) {
-          next();
+        if (request.url?.startsWith("/redgifs-public/gifs/")) {
+          void handleRedgifsRequest(request, response);
           return;
         }
-
-        void handleRedgifsRequest(request, response);
+        if (request.url?.startsWith("/redgifs-media/")) {
+          void handleRedgifsMediaRequest(request, response);
+          return;
+        }
+        next();
       });
     }
   };

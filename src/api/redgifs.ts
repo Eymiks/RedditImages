@@ -75,8 +75,10 @@ async function resolveRedgifsMedia(id: string): Promise<ResolvedRedgifsMedia> {
   }
 
   const json = (await response.json()) as RedgifsProxyResponse;
-  const url = json.urls?.hd ?? json.urls?.sd;
-  const previewUrl = json.urls?.thumbnail ?? json.urls?.poster ?? json.urls?.vthumbnail;
+  const url = rewriteRedgifsMediaUrl(json.urls?.hd ?? json.urls?.sd);
+  const previewUrl = rewriteRedgifsMediaUrl(
+    json.urls?.thumbnail ?? json.urls?.poster ?? json.urls?.vthumbnail
+  );
 
   if (!url) {
     throw new Error("Redgifs ne fournit pas de video lisible.");
@@ -88,6 +90,25 @@ async function resolveRedgifsMedia(id: string): Promise<ResolvedRedgifsMedia> {
     previewUrl: previewUrl ?? "",
     externalUrl: `https://www.redgifs.com/watch/${json.id ?? id}`
   };
+}
+
+function rewriteRedgifsMediaUrl(url: string | undefined): string | undefined {
+  if (!url) {
+    return url;
+  }
+  const match = url.match(/^https:\/\/media\.redgifs\.com\/(.+)$/);
+  if (!match) {
+    return url;
+  }
+  const filename = match[1];
+  const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, "");
+  if (workerUrl) {
+    return `${workerUrl}/redgifs-media/${filename}`;
+  }
+  if (import.meta.env.DEV) {
+    return `/redgifs-media/${filename}`;
+  }
+  return url;
 }
 
 function fetchWithDevFallback(id: string, signal: AbortSignal): Promise<Response> {

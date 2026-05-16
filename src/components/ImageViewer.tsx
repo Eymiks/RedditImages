@@ -101,7 +101,9 @@ export function ImageViewer({ posts, initialIndex, onClose }: ImageViewerProps) 
                     controls
                     loop
                     playsInline
+                    preload="metadata"
                     poster={asset.previewUrl}
+                    referrerPolicy="no-referrer"
                     src={asset.url}
                   />
                 ) : asset.kind === "video" ? (

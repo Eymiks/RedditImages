@@ -108,7 +108,9 @@ export function ImageGrid({
                 loop
                 muted
                 playsInline
+                preload="metadata"
                 poster={post.assets[0].previewUrl}
+                referrerPolicy="no-referrer"
                 src={post.assets[0].url}
               />
             ) : post.assets[0]?.kind === "video" ? (

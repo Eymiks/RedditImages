@@ -1,5 +1,7 @@
 const REDDIT_ORIGIN = "https://old.reddit.com";
 const REDGIFS_API_BASE = "https://api.redgifs.com";
+const REDGIFS_MEDIA_BASE = "https://media.redgifs.com";
+const REDGIFS_MEDIA_FILENAME = /^[A-Za-z0-9-]+(?:\.(?:mp4|m4v|webm|jpg|jpeg|webp|png))$/;
 const USER_AGENT = "MyRedditImageApp/1.0";
 const redditMemoryCache = new Map();
 
@@ -17,6 +19,10 @@ export default {
 
     if (url.pathname === "/redgifs") {
       return handleRedgifs(url);
+    }
+
+    if (url.pathname.startsWith("/redgifs-media/")) {
+      return handleRedgifsMedia(url, request);
     }
 
     return json({ error: "Not found" }, 404);
@@ -139,6 +145,43 @@ async function handleRedgifs(url) {
     200,
     "public, max-age=300"
   );
+}
+
+async function handleRedgifsMedia(url, request) {
+  const filename = decodeURIComponent(url.pathname.replace(/^\/redgifs-media\//, ""));
+
+  if (!REDGIFS_MEDIA_FILENAME.test(filename)) {
+    return new Response("Invalid Redgifs filename", {
+      status: 400,
+      headers: { ...corsHeaders(), "Content-Type": "text/plain" }
+    });
+  }
+
+  const upstreamHeaders = { "User-Agent": USER_AGENT };
+  const range = request.headers.get("Range");
+  if (range) {
+    upstreamHeaders.Range = range;
+  }
+
+  const upstream = await fetch(`${REDGIFS_MEDIA_BASE}/${filename}`, { headers: upstreamHeaders });
+
+  const responseHeaders = {
+    ...corsHeaders(),
+    "Accept-Ranges": "bytes",
+    "Cache-Control": upstream.ok ? "public, max-age=3600" : "no-store"
+  };
+  for (const header of ["content-type", "content-length", "content-range", "etag", "last-modified"]) {
+    const value = upstream.headers.get(header);
+    if (value) {
+      responseHeaders[header] = value;
+    }
+  }
+  responseHeaders["Access-Control-Expose-Headers"] = "Content-Length, Content-Range, Accept-Ranges";
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: responseHeaders
+  });
 }
 
 function json(body, status, cacheControl = "no-store") {

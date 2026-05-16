@@ -60,7 +60,7 @@ export function normalizeSubreddit(name: string): string {
 function readFavorites(): string[] {
   const raw = localStorage.getItem(FAVORITES_KEY);
   if (!raw) {
-    return ["pics", "earthporn", "itookapicture"];
+    return ["pics", "earthporn", "itookapicture", "deepthroat"];
   }
 
   try {
