@@ -56,6 +56,11 @@ export async function fetchListing({
   }
 
   if (!response.ok) {
+    const message = await readErrorMessage(response);
+    if (message) {
+      throw new Error(message);
+    }
+
     throw new Error(`Reddit JSON a repondu ${response.status}.`);
   }
 
@@ -130,6 +135,20 @@ function readRetryAfter(response: Response): number | null {
   }
 
   return null;
+}
+
+async function readErrorMessage(response: Response): Promise<string | null> {
+  const contentType = response.headers.get("Content-Type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return null;
+  }
+
+  try {
+    const body = (await response.clone().json()) as { error?: string };
+    return body.error ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function readCachedListing(url: string): ListingResult | null {

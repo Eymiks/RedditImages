@@ -90,7 +90,8 @@ async function handleReddit(url, response) {
 
   if (!contentType.includes("application/json")) {
     sendJson(response, 502, {
-      error: "Reddit blocked this proxy host or returned a non-JSON security page"
+      error:
+        "Reddit bloque ce proxy avec sa page network security. Essaie un autre hebergeur/proxy ou un cache deja chaud."
     });
     return;
   }
