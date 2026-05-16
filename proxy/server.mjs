@@ -16,6 +16,11 @@ const server = http.createServer(async (request, response) => {
   }
 
   try {
+    if (url.pathname === "/health") {
+      sendJson(response, 200, { ok: true }, "no-store");
+      return;
+    }
+
     if (url.pathname === "/reddit") {
       await handleReddit(url, response);
       return;

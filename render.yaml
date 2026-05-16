@@ -3,6 +3,7 @@ services:
     name: reddit-image-pwa-proxy
     runtime: node
     plan: free
+    healthCheckPath: /health
     buildCommand: npm install
     startCommand: npm run proxy:start
     envVars:
