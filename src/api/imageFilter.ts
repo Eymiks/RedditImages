@@ -34,8 +34,9 @@ function extractAssets(post: RedditPostData): ImageAsset[] {
     return [];
   }
 
-  const redgifsId = post.url ? parseRedgifsId(post.url) : null;
-  if (redgifsId && post.url) {
+  const postUrl = post.url_overridden_by_dest ?? post.url;
+  const redgifsId = postUrl ? parseRedgifsId(postUrl) : null;
+  if (redgifsId && postUrl) {
     const previewUrl = pickPostPreview(post) ?? "";
     return [
       {
@@ -44,7 +45,7 @@ function extractAssets(post: RedditPostData): ImageAsset[] {
         previewUrl,
         kind: "video",
         source: "redgifs",
-        externalUrl: normalizeMediaUrl(post.url),
+        externalUrl: normalizeMediaUrl(postUrl),
         redgifsId
       }
     ];
@@ -61,7 +62,7 @@ function extractAssets(post: RedditPostData): ImageAsset[] {
     });
   }
 
-  const directUrl = post.url ? normalizeMediaUrl(post.url) : null;
+  const directUrl = postUrl ? normalizeMediaUrl(postUrl) : null;
   const previewUrl = pickPostPreview(post);
 
   if (directUrl && (isImageUrl(directUrl) || isVideoUrl(directUrl))) {
@@ -152,5 +153,5 @@ function isVideoUrl(url: string): boolean {
 }
 
 function stripQuery(url: string): string {
-  return url.split(/[?#]/)[0];
+  return url.split(/[?#]/)[0].replace(/\.jpeg$/i, ".jpg");
 }

@@ -52,6 +52,7 @@ export interface RedditPostData {
   score?: number;
   author?: string;
   url?: string;
+  url_overridden_by_dest?: string;
   domain?: string;
   post_hint?: string;
   is_gallery?: boolean;
