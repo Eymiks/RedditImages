@@ -94,6 +94,11 @@ function buildListingUrl(
 async function fetchPublic(url: string): Promise<Response> {
   const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, "");
   const publicUrl = new URL(url);
+  const directResponse = await fetchDirect(publicUrl);
+
+  if (directResponse) {
+    return directResponse;
+  }
 
   if (workerUrl) {
     const proxied = new URL(`${workerUrl}/reddit`);
@@ -112,6 +117,30 @@ async function fetchPublic(url: string): Promise<Response> {
   }
 
   throw new Error("Configure VITE_WORKER_URL pour les appels publics Reddit en production.");
+}
+
+async function fetchDirect(url: URL): Promise<Response | null> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    const contentType = response.headers.get("Content-Type") ?? "";
+
+    if (
+      response.ok ||
+      response.status === 404 ||
+      response.status === 429 ||
+      contentType.includes("application/json")
+    ) {
+      return response;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 function wait(ms: number): Promise<void> {

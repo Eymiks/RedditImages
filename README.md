@@ -15,7 +15,7 @@ Copie `.env.example` en `.env` puis renseigne:
 VITE_WORKER_URL=https://ton-worker.workers.dev
 ```
 
-En developpement, `VITE_WORKER_URL` peut rester vide: Vite utilise un proxy local `/reddit-public` pour eviter le CORS Reddit. En production, configure le Worker.
+En developpement, `VITE_WORKER_URL` peut rester vide: l'app tente d'abord `old.reddit.com` en direct, puis Vite utilise un proxy local `/reddit-public` en secours. En production, configure le Worker ou le proxy Node pour les fallbacks et Redgifs.
 
 ## Acces Reddit
 
@@ -25,11 +25,11 @@ L'app utilise les endpoints JSON publics:
 https://old.reddit.com/r/{subreddit}/{sort}.json?limit=25&after={token}&raw_json=1
 ```
 
-Aucune cle API Reddit n'est necessaire pour cette version. Les custom feeds prives et les donnees utilisateur ne sont pas disponibles sans OAuth.
+Aucune cle API Reddit n'est necessaire pour cette version. L'app tente ces URLs en direct depuis le navigateur, puis utilise `VITE_WORKER_URL` seulement en secours. Les custom feeds prives et les donnees utilisateur ne sont pas disponibles sans OAuth.
 
 ## Worker Cloudflare
 
-Le navigateur ne peut pas definir le header `User-Agent` sur les appels directs Reddit et peut rencontrer CORS. Le Worker proxyfie donc les listings publics Reddit et ajoute:
+Le Worker sert de fallback quand les appels directs Reddit echouent et ajoute:
 
 ```http
 User-Agent: MyRedditImageApp/1.0
