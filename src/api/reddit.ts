@@ -9,7 +9,7 @@ import type {
 } from "../types/reddit";
 
 const LIMIT = 25;
-const PUBLIC_BASE = "https://www.reddit.com";
+const PUBLIC_BASE = "https://old.reddit.com";
 const LISTING_CACHE_PREFIX = "reddit-image-pwa:listing:";
 const LISTING_CACHE_MAX_AGE = 1000 * 60 * 60 * 12;
 

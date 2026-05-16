@@ -1,4 +1,4 @@
-const REDDIT_ORIGIN = "https://www.reddit.com";
+const REDDIT_ORIGIN = "https://old.reddit.com";
 const REDGIFS_API_BASE = "https://api.redgifs.com";
 const USER_AGENT = "MyRedditImageApp/1.0";
 const redditMemoryCache = new Map();

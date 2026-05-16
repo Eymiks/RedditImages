@@ -22,7 +22,7 @@ En developpement, `VITE_WORKER_URL` peut rester vide: Vite utilise un proxy loca
 L'app utilise les endpoints JSON publics:
 
 ```text
-https://www.reddit.com/r/{subreddit}/{sort}.json?limit=50&after={token}&raw_json=1
+https://old.reddit.com/r/{subreddit}/{sort}.json?limit=25&after={token}&raw_json=1
 ```
 
 Aucune cle API Reddit n'est necessaire pour cette version. Les custom feeds prives et les donnees utilisateur ne sont pas disponibles sans OAuth.
@@ -64,7 +64,7 @@ npm run dev
 Endpoint expose:
 
 ```text
-GET /reddit?url=https%3A%2F%2Fwww.reddit.com%2Fr%2Fpics%2Fhot.json%3Flimit%3D50
+GET /reddit?url=https%3A%2F%2Fold.reddit.com%2Fr%2Fpics%2Fhot.json%3Flimit%3D25
 GET /redgifs?id=redgifsid
 ```
 

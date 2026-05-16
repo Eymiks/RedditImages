@@ -11,7 +11,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/reddit-public": {
-        target: "https://www.reddit.com",
+        target: "https://old.reddit.com",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/reddit-public/, ""),
         headers: {
