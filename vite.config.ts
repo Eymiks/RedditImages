@@ -28,7 +28,7 @@ export default defineConfig({
     redgifsDevProxy(),
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       injectRegister: "auto",
       manifest: false,
       workbox: {
