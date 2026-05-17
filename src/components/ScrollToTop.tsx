@@ -19,14 +19,15 @@ export function ScrollToTop() {
   return (
     <button
       aria-label="Remonter en haut"
-      className="glass-strong fixed bottom-24 right-4 z-30 grid h-12 w-12 place-items-center rounded-full text-accent-300 shadow-glow-accent animate-fade-in"
+      className="glass-strong fixed bottom-28 right-4 z-30 flex items-center gap-1.5 rounded-full px-3 py-2.5 text-accent-300 shadow-glow-accent animate-fade-in"
       onClick={() => {
         haptic("light");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }}
       type="button"
     >
-      <ChevronUp size={22} strokeWidth={2.4} />
+      <ChevronUp size={16} strokeWidth={2.5} />
+      <span className="text-[11px] font-bold">Haut</span>
     </button>
   );
 }

@@ -37,19 +37,13 @@ export function ImageGrid({
   const [heartFor, setHeartFor] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!sentinelRef.current) {
-      return;
-    }
-
+    if (!sentinelRef.current) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && hasMore && !isLoading) {
-          onLoadMore();
-        }
+        if (entry.isIntersecting && hasMore && !isLoading) onLoadMore();
       },
       { rootMargin: "500px 0px" }
     );
-
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
   }, [hasMore, isLoading, onLoadMore]);
@@ -78,10 +72,19 @@ export function ImageGrid({
 
   if (isInitialLoading) {
     return (
-      <div className="grid grid-cols-2 gap-2">
-        {Array.from({ length: 8 }, (_, index) => (
-          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" key={index} />
-        ))}
+      <div className="flex gap-2">
+        <div className="flex flex-1 flex-col gap-2">
+          <div className="shimmer-bg aspect-[2/3] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[4/5] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[1/1] animate-shimmer rounded-3xl" />
+        </div>
+        <div className="flex flex-1 flex-col gap-2">
+          <div className="shimmer-bg aspect-[4/5] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[2/3] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[3/5] animate-shimmer rounded-3xl" />
+        </div>
       </div>
     );
   }
@@ -113,128 +116,38 @@ export function ImageGrid({
     );
   }
 
+  const leftPosts = posts.filter((_, i) => i % 2 === 0);
+  const rightPosts = posts.filter((_, i) => i % 2 === 1);
+
   return (
     <section className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        {posts.map((post, index) => {
-          const saved = isSaved(post.id);
-          const showHeart = heartFor === post.id;
-          return (
-            <button
-              className="group relative aspect-[3/4] overflow-hidden rounded-3xl bg-black/40 text-left shadow-glow transition-all duration-300 active:scale-[0.98]"
+      <div className="flex items-start gap-2">
+        <div className="flex flex-1 flex-col gap-2">
+          {leftPosts.map((post, colIdx) => (
+            <PostCard
+              autoplay={autoplay}
+              index={colIdx * 2}
+              isSaved={isSaved(post.id)}
               key={post.id}
-              onClick={() => handleTap(index, post)}
-              type="button"
-            >
-              {post.assets[0]?.source === "redgifs" ? (
-                <div className="flex h-full w-full items-center justify-center bg-black/40">
-                  {post.assets[0].previewUrl ? (
-                    <img
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      src={post.assets[0].previewUrl}
-                    />
-                  ) : null}
-                  <span className="relative grid h-12 w-12 place-items-center rounded-full bg-black/65 text-white shadow-lg">
-                    <Play fill="currentColor" size={22} />
-                  </span>
-                </div>
-              ) : post.assets[0]?.kind === "video" && post.assets[0].url && autoplay ? (
-                <video
-                  className="h-full w-full object-cover"
-                  loop
-                  muted
-                  playsInline
-                  preload="none"
-                  poster={post.assets[0].previewUrl}
-                  src={post.assets[0].url}
-                />
-              ) : post.assets[0]?.kind === "video" ? (
-                <div className="relative flex h-full w-full items-center justify-center bg-black/40">
-                  {post.assets[0].previewUrl ? (
-                    <img
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover opacity-70"
-                      loading="lazy"
-                      src={post.assets[0].previewUrl}
-                    />
-                  ) : null}
-                  <span className="relative grid h-12 w-12 place-items-center rounded-full bg-black/65 text-white">
-                    <Play fill="currentColor" size={22} />
-                  </span>
-                </div>
-              ) : post.assets[0] ? (
-                <img
-                  alt={post.title}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  loading="lazy"
-                  src={post.assets[0]?.previewUrl ?? post.assets[0]?.url}
-                />
-              ) : (
-                <div className="h-full w-full bg-black/40" />
-              )}
-
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent p-3 pt-8">
-                <p className="title-shadow line-clamp-2 text-xs font-semibold leading-snug text-white">
-                  {post.title}
-                </p>
-                <p className="title-shadow mt-0.5 text-[10px] font-medium uppercase tracking-wider text-moss-100/70">
-                  r/{post.subreddit}
-                </p>
-              </div>
-
-              <div className="absolute left-2 top-2 flex items-center gap-1.5">
-                {post.nsfw ? (
-                  <span
-                    aria-label="NSFW"
-                    className="h-2.5 w-2.5 rounded-full bg-red-500 ring-1 ring-red-200/40 ring-offset-1 ring-offset-black/30"
-                  />
-                ) : null}
-                {post.assets.length > 1 ? (
-                  <span className="glass-dark flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    <Images size={9} />
-                    {post.assets.length}
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
-                {post.assets[0]?.source === "redgifs" ? (
-                  <span
-                    aria-label="Redgifs"
-                    className="grid h-6 w-6 place-items-center rounded-full bg-orange-500/90 text-white shadow-[0_0_10px_-2px_rgba(249,115,22,0.7)]"
-                  >
-                    <Flame fill="currentColor" size={12} />
-                  </span>
-                ) : post.assets[0]?.kind === "video" ? (
-                  <span
-                    aria-label="Video"
-                    className="glass-dark grid h-6 w-6 place-items-center rounded-full text-white"
-                  >
-                    <Play fill="currentColor" size={10} />
-                  </span>
-                ) : null}
-                {saved ? (
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-accent-400 text-moss-950 shadow-glow-accent">
-                    <Bookmark fill="currentColor" size={13} />
-                  </span>
-                ) : null}
-              </div>
-
-              {showHeart ? (
-                <span className="pointer-events-none absolute inset-0 grid place-items-center">
-                  <Heart
-                    className="text-accent-300 drop-shadow-[0_0_25px_rgba(34,211,238,0.85)] animate-heart-pop"
-                    fill="currentColor"
-                    size={72}
-                  />
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
+              onTap={handleTap}
+              post={post}
+              showHeart={heartFor === post.id}
+            />
+          ))}
+        </div>
+        <div className="flex flex-1 flex-col gap-2">
+          {rightPosts.map((post, colIdx) => (
+            <PostCard
+              autoplay={autoplay}
+              index={colIdx * 2 + 1}
+              isSaved={isSaved(post.id)}
+              key={post.id}
+              onTap={handleTap}
+              post={post}
+              showHeart={heartFor === post.id}
+            />
+          ))}
+        </div>
       </div>
 
       {error ? (
@@ -247,9 +160,9 @@ export function ImageGrid({
 
       {isLoading ? (
         <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
-            <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
+          <div className="flex gap-2">
+            <div className="shimmer-bg aspect-[3/4] flex-1 animate-shimmer rounded-3xl" />
+            <div className="shimmer-bg aspect-[4/5] flex-1 animate-shimmer rounded-3xl" />
           </div>
           <p className="text-center text-[11px] text-moss-100/40">Chargement…</p>
         </div>
@@ -270,5 +183,146 @@ export function ImageGrid({
         </div>
       ) : null}
     </section>
+  );
+}
+
+interface PostCardProps {
+  post: ImagePost;
+  index: number;
+  isSaved: boolean;
+  autoplay: boolean;
+  showHeart: boolean;
+  onTap: (index: number, post: ImagePost) => void;
+}
+
+function PostCard({ post, index, isSaved, autoplay, showHeart, onTap }: PostCardProps) {
+  const asset = post.assets[0];
+  const isVideo = asset?.kind === "video";
+  const isRedgifs = asset?.source === "redgifs";
+
+  return (
+    <button
+      className="group relative w-full overflow-hidden rounded-3xl bg-black/40 text-left shadow-glow transition-transform duration-200 active:scale-[0.97]"
+      onClick={() => onTap(index, post)}
+      type="button"
+    >
+      {/* Media content */}
+      {isRedgifs ? (
+        <div className="relative aspect-[3/4] bg-black/40">
+          {asset.previewUrl ? (
+            <img
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              src={asset.previewUrl}
+            />
+          ) : null}
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-black/65 text-white shadow-lg">
+              <Play fill="currentColor" size={22} />
+            </span>
+          </span>
+        </div>
+      ) : isVideo && asset.url && autoplay ? (
+        <div className="aspect-[3/4]">
+          <video
+            className="h-full w-full object-cover"
+            loop
+            muted
+            playsInline
+            preload="none"
+            poster={asset.previewUrl}
+            src={asset.url}
+          />
+        </div>
+      ) : isVideo ? (
+        <div className="relative aspect-[3/4] bg-black/40">
+          {asset.previewUrl ? (
+            <img
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover opacity-70"
+              loading="lazy"
+              src={asset.previewUrl}
+            />
+          ) : null}
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-black/65 text-white">
+              <Play fill="currentColor" size={22} />
+            </span>
+          </span>
+        </div>
+      ) : asset ? (
+        <img
+          alt={post.title}
+          className="block w-full transition duration-500 group-hover:scale-105"
+          loading="lazy"
+          src={asset.previewUrl ?? asset.url}
+        />
+      ) : (
+        <div className="aspect-[3/4] bg-black/40" />
+      )}
+
+      {/* Bottom overlay */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 pt-10">
+        <p className="line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+          {post.title}
+        </p>
+        <span className="mt-1.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80">
+          r/{post.subreddit}
+        </span>
+      </div>
+
+      {/* Top-left badges */}
+      <div className="absolute left-2 top-2 flex items-center gap-1.5">
+        {post.nsfw ? (
+          <span
+            aria-label="NSFW"
+            className="h-2.5 w-2.5 rounded-full bg-red-500 ring-1 ring-red-200/40 ring-offset-1 ring-offset-black/30"
+          />
+        ) : null}
+        {post.assets.length > 1 ? (
+          <span className="glass-dark flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+            <Images size={9} />
+            {post.assets.length}
+          </span>
+        ) : null}
+      </div>
+
+      {/* Top-right badges */}
+      <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+        {isRedgifs ? (
+          <span
+            aria-label="Redgifs"
+            className="grid h-6 w-6 place-items-center rounded-full bg-orange-500/90 text-white shadow-[0_0_10px_-2px_rgba(249,115,22,0.7)]"
+          >
+            <Flame fill="currentColor" size={12} />
+          </span>
+        ) : isVideo ? (
+          <span
+            aria-label="Video"
+            className="glass-dark grid h-6 w-6 place-items-center rounded-full text-white"
+          >
+            <Play fill="currentColor" size={10} />
+          </span>
+        ) : null}
+        {isSaved ? (
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-accent-400 text-moss-950 shadow-glow-accent">
+            <Bookmark fill="currentColor" size={13} />
+          </span>
+        ) : null}
+      </div>
+
+      {/* Double-tap heart */}
+      {showHeart ? (
+        <span className="pointer-events-none absolute inset-0 grid place-items-center">
+          <Heart
+            className="text-accent-300 drop-shadow-[0_0_25px_rgba(34,211,238,0.85)] animate-heart-pop"
+            fill="currentColor"
+            size={72}
+          />
+        </span>
+      ) : null}
+    </button>
   );
 }

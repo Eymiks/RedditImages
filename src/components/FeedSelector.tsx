@@ -20,10 +20,13 @@ export function FavoritesStrip({ favorites, selectedSubreddit, onSelect }: Favor
     <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 animate-fade-in">
       {favorites.map((favorite) => {
         const active = selectedSubreddit === favorite;
+        const initial = favorite[0]?.toUpperCase() ?? "?";
         return (
           <button
-            className={`shrink-0 rounded-full px-4 py-2 text-sm transition-all ${
-              active ? "chip-active" : "chip-idle"
+            className={`flex shrink-0 items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-sm font-semibold transition-all duration-200 ${
+              active
+                ? "bg-accent-400/20 text-accent-300 shadow-glow-accent"
+                : "bg-white/6 text-moss-100/70 hover:bg-white/10"
             }`}
             key={favorite}
             onClick={() => {
@@ -32,7 +35,14 @@ export function FavoritesStrip({ favorites, selectedSubreddit, onSelect }: Favor
             }}
             type="button"
           >
-            r/{favorite}
+            <span
+              className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-black ${
+                active ? "bg-accent-400 text-moss-950" : "bg-white/12 text-white/80"
+              }`}
+            >
+              {initial}
+            </span>
+            {favorite}
           </button>
         );
       })}

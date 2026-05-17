@@ -38,12 +38,13 @@ export function SettingsPopover({ settings, onToggle, onSet, onClearCache, onClo
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/55 px-4 pt-20 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-end bg-black/55 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className="glass-strong w-full max-w-sm rounded-3xl p-5 shadow-glow-accent animate-slide-up"
+        className="glass-strong w-full max-w-[430px] mx-auto rounded-t-3xl pb-[max(1.5rem,env(safe-area-inset-bottom))] animate-slide-up"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mx-auto mt-3 mb-1 h-1 w-10 rounded-full bg-white/20" />
+        <div className="mb-2 flex items-center justify-between px-5 py-3">
           <h2 className="text-base font-semibold tracking-tight">Réglages</h2>
           <button
             aria-label="Fermer"
@@ -54,6 +55,7 @@ export function SettingsPopover({ settings, onToggle, onSet, onClearCache, onClo
             <X size={18} />
           </button>
         </div>
+        <div className="px-4">
 
         <ToggleRow
           icon={settings.nsfw ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -121,6 +123,7 @@ export function SettingsPopover({ settings, onToggle, onSet, onClearCache, onClo
               </p>
             </span>
           </button>
+        </div>
         </div>
       </div>
     </div>

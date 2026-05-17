@@ -41,6 +41,7 @@ export function CustomFeedManager({
         className="glass-strong relative flex max-h-[90vh] w-full max-w-[430px] flex-col rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))] animate-slide-up"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="mx-auto mt-3 mb-1 h-1 w-10 rounded-full bg-white/20" />
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           {mode.kind === "edit" ? (
             <button

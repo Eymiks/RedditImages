@@ -1,5 +1,6 @@
 import { clearListingCache } from "./api/reddit";
 import { Layers, Loader2, Settings } from "lucide-react";
+import { useScrollDirection } from "./hooks/useScrollDirection";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BottomNav } from "./components/BottomNav";
 import { CustomFeedManager } from "./components/CustomFeedManager";
@@ -114,8 +115,10 @@ export default function App() {
     enabled: !isSavedTab && viewerIndex === null && !showFeedManager && !showSettings
   });
 
+  const headerCollapsed = useScrollDirection();
+
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-3 pb-28">
+    <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-3 pb-32">
       <header className="glass sticky top-0 z-20 -mx-3 rounded-b-3xl px-4 pb-3 pt-4">
         <div className="mb-3 flex items-start justify-between gap-3">
           <HeaderContext
@@ -135,13 +138,19 @@ export default function App() {
         </div>
 
         {showSearch ? (
-          <SubredditInput
-            isFavorite={isFavorite(subreddit)}
-            onSubmit={handleSubmitSubreddit}
-            onToggleFavorite={() => toggleFavorite(subreddit)}
-            recent={recent}
-            value={subreddit}
-          />
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              headerCollapsed ? "max-h-0 opacity-0 pointer-events-none" : "max-h-20 opacity-100"
+            }`}
+          >
+            <SubredditInput
+              isFavorite={isFavorite(subreddit)}
+              onSubmit={handleSubmitSubreddit}
+              onToggleFavorite={() => toggleFavorite(subreddit)}
+              recent={recent}
+              value={subreddit}
+            />
+          </div>
         ) : null}
       </header>
 

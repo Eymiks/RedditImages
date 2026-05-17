@@ -650,16 +650,19 @@ function ActionColumn({
       <ActionButton
         active={saved}
         icon={<Bookmark fill={saved ? "currentColor" : "none"} size={18} />}
+        label="Garder"
         onClick={onSave}
       />
       <ActionButton
         count={formatCount(comments)}
         icon={<MessageCircle size={18} />}
+        label="Voir"
         onClick={onComments}
       />
-      <ActionButton icon={<Share2 size={18} />} onClick={onShare} />
+      <ActionButton icon={<Share2 size={18} />} label="Partager" onClick={onShare} />
       <ActionButton
         icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        label={muted ? "Muet" : "Son"}
         onClick={onMute}
       />
       <div className="mt-0.5 flex flex-col items-center gap-0.5 rounded-full bg-black/35 px-2 py-1 text-[10px] font-bold tabular-nums backdrop-blur-md">
@@ -673,11 +676,12 @@ function ActionColumn({
 interface ActionButtonProps {
   active?: boolean;
   count?: string;
+  label?: string;
   icon: React.ReactNode;
   onClick: () => void;
 }
 
-function ActionButton({ active, count, icon, onClick }: ActionButtonProps) {
+function ActionButton({ active, count, label, icon, onClick }: ActionButtonProps) {
   return (
     <button
       className="flex flex-col items-center gap-0.5 transition-transform active:scale-90"
@@ -691,11 +695,9 @@ function ActionButton({ active, count, icon, onClick }: ActionButtonProps) {
       >
         {icon}
       </span>
-      {count ? (
-        <span className="text-[10px] font-semibold tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-          {count}
-        </span>
-      ) : null}
+      <span className="text-[9px] font-semibold tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+        {count ?? label}
+      </span>
     </button>
   );
 }
