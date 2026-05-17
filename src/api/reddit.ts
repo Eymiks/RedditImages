@@ -18,6 +18,7 @@ interface FetchListingParams {
   sort: SortName;
   period: TopPeriod;
   after: string | null;
+  allowNsfw?: boolean;
   retryCount?: number;
 }
 
@@ -26,6 +27,7 @@ export async function fetchListing({
   sort,
   period,
   after,
+  allowNsfw = true,
   retryCount = 0
 }: FetchListingParams): Promise<ListingResult> {
   const url = buildListingUrl(target, sort, period, after);
@@ -48,7 +50,7 @@ export async function fetchListing({
     }
 
     await wait(retryAfterSeconds * 1000);
-    return fetchListing({ target, sort, period, after, retryCount: retryCount + 1 });
+    return fetchListing({ target, sort, period, after, allowNsfw, retryCount: retryCount + 1 });
   }
 
   if (response.status === 404) {
@@ -66,7 +68,9 @@ export async function fetchListing({
 
   const json = (await response.json()) as RedditListingResponse;
   const result = {
-    posts: await enrichRedgifsPosts(normalizePosts(json.data.children.map((child) => child.data))),
+    posts: await enrichRedgifsPosts(
+      normalizePosts(json.data.children.map((child) => child.data), { allowNsfw })
+    ),
     after: json.data.after
   };
   writeCachedListing(url, result);
@@ -79,7 +83,8 @@ function buildListingUrl(
   period: TopPeriod,
   after: string | null
 ): string {
-  const url = new URL(`${PUBLIC_BASE}/r/${encodeURIComponent(target.name)}/${sort}.json`);
+  const path = buildTargetPath(target);
+  const url = new URL(`${PUBLIC_BASE}${path}/${sort}.json`);
   url.searchParams.set("limit", String(LIMIT));
   url.searchParams.set("raw_json", "1");
   if (after) {
@@ -89,6 +94,16 @@ function buildListingUrl(
     url.searchParams.set("t", period);
   }
   return url.toString();
+}
+
+function buildTargetPath(target: FeedTarget): string {
+  if (target.kind === "multi") {
+    const joined = target.subreddits
+      .map((name) => encodeURIComponent(name))
+      .join("+");
+    return `/r/${joined}`;
+  }
+  return `/r/${encodeURIComponent(target.name)}`;
 }
 
 async function fetchPublic(url: string): Promise<Response> {
@@ -220,4 +235,12 @@ function pruneListingCache() {
     .filter((key) => key.startsWith(LISTING_CACHE_PREFIX))
     .slice(0, 20)
     .forEach((key) => localStorage.removeItem(key));
+}
+
+export function clearListingCache(): number {
+  const keys = Object.keys(localStorage).filter((key) =>
+    key.startsWith(LISTING_CACHE_PREFIX)
+  );
+  keys.forEach((key) => localStorage.removeItem(key));
+  return keys.length;
 }

@@ -7,7 +7,7 @@
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #071812;
+  background: #050f0c;
   color: #f5faf7;
 }
 
@@ -25,8 +25,10 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    linear-gradient(180deg, rgba(15, 47, 37, 0.92), rgba(7, 24, 18, 1) 300px),
-    #071812;
+    radial-gradient(1200px 600px at 8% -10%, rgba(34, 211, 238, 0.14), transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, rgba(40, 88, 66, 0.55), transparent 65%),
+    linear-gradient(180deg, #0b231c 0%, #050f0c 100%);
+  background-attachment: fixed;
 }
 
 button,
@@ -37,8 +39,78 @@ select {
 
 button {
   min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .safe-bottom {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/10 bg-white/5 backdrop-blur-xl;
+  }
+  .glass-strong {
+    @apply border border-white/15 bg-white/10 backdrop-blur-2xl;
+  }
+  .glass-dark {
+    @apply border border-white/10 bg-black/40 backdrop-blur-xl;
+  }
+  .pill {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-all duration-200;
+  }
+  .pill-active {
+    @apply bg-accent-400 text-moss-950 font-extrabold shadow-glow-accent-strong;
+  }
+  .pill-idle {
+    @apply border border-white/10 bg-white/5 text-moss-100/55 hover:bg-white/10 hover:text-moss-100/85;
+  }
+  .chip-active {
+    @apply bg-accent-400 text-moss-950 font-extrabold shadow-glow-accent-strong scale-[1.02];
+  }
+  .chip-idle {
+    @apply border border-white/10 bg-white/5 text-moss-100/75 hover:bg-white/10;
+  }
+}
+
+@layer utilities {
+  .safe-bottom-nav {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  .title-shadow {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  }
+}
+
+@layer utilities {
+  .shimmer-bg {
+    background-image: linear-gradient(
+      110deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.12) 40%,
+      rgba(255, 255, 255, 0.04) 80%
+    );
+    background-size: 200% 100%;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
 }

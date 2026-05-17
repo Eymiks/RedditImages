@@ -2,6 +2,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import {
   ArrowUp,
   Bookmark,
+  Check,
   ExternalLink,
   Heart,
   Loader2,
@@ -70,6 +71,8 @@ export function ImageViewer({
   const { settings, set: setSetting } = useSettings();
   const muted = settings.viewerMuted;
   const [selectedIndex, setSelectedIndex] = useState(initialIndex);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
   const [emblaRef, emblaApi] = useEmblaCarousel({
     axis: "y",
     startIndex: initialIndex,
@@ -189,6 +192,19 @@ export function ImageViewer({
     return toggled;
   }, [currentPost]);
 
+  const showToast = useCallback((message: string) => {
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    setToast(message);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const handleToggleSave = useCallback((post: ImagePost) => {
+    const wasSaved = isSaved(post.id);
+    haptic("medium");
+    onToggleSave(post);
+    showToast(wasSaved ? "Retiré des sauvegardes" : "Post sauvegardé");
+  }, [isSaved, onToggleSave, showToast]);
+
   const toggleMute = useCallback(() => {
     haptic("light");
     setSetting("viewerMuted", !muted);
@@ -244,10 +260,7 @@ export function ImageViewer({
               isNear={Math.abs(index - selectedIndex) <= 1}
               key={post.id}
               muted={muted}
-              onToggleSave={() => {
-                haptic("medium");
-                onToggleSave(post);
-              }}
+              onToggleSave={() => handleToggleSave(post)}
               onToggleVideo={toggleCurrentVideo}
               onUnmuteIfMuted={() => {
                 if (muted) {
@@ -279,6 +292,18 @@ export function ImageViewer({
         <X size={20} />
       </button>
 
+      {toast ? (
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute inset-x-0 top-16 z-50 flex justify-center animate-fade-in"
+        >
+          <span className="flex items-center gap-1.5 rounded-full bg-black/70 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur-md">
+            <Check size={13} className="text-accent-300" />
+            {toast}
+          </span>
+        </div>
+      ) : null}
+
       <p
         className={`pointer-events-none absolute right-3 top-3 z-40 rounded-full bg-black/35 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-moss-100/80 backdrop-blur-md ${uiClass}`}
       >
@@ -292,10 +317,7 @@ export function ImageViewer({
             muted={muted}
             onComments={handleComments}
             onMute={toggleMute}
-            onSave={() => {
-              haptic("medium");
-              onToggleSave(currentPost);
-            }}
+            onSave={() => handleToggleSave(currentPost)}
             onShare={handleShare}
             saved={saved}
             score={currentPost.score}
@@ -760,6 +782,13 @@ function EndSlide() {
   );
 }
 
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 interface VideoProgressBarProps {
   postId: string;
   assetId: string;
@@ -767,6 +796,8 @@ interface VideoProgressBarProps {
 
 function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const draggingRef = useRef(false);
@@ -778,39 +809,40 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
     if (!video) return;
     videoRef.current = video;
 
+    const syncState = () => {
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        setCurrentTime(video.currentTime);
+        setDuration(video.duration);
+        if (!draggingRef.current) {
+          setProgress((video.currentTime / video.duration) * 100);
+        }
+      }
+    };
+
     let rafId = 0;
     const tick = () => {
-      if (!draggingRef.current && Number.isFinite(video.duration) && video.duration > 0) {
-        setProgress((video.currentTime / video.duration) * 100);
-      }
+      syncState();
       if (!video.paused && !video.ended) {
         rafId = window.requestAnimationFrame(tick);
       }
     };
 
-    const onPlay = () => {
-      rafId = window.requestAnimationFrame(tick);
-    };
-    const onPause = () => {
-      window.cancelAnimationFrame(rafId);
-      if (Number.isFinite(video.duration) && video.duration > 0) {
-        setProgress((video.currentTime / video.duration) * 100);
-      }
-    };
-    const onSeeked = () => {
-      if (Number.isFinite(video.duration) && video.duration > 0) {
-        setProgress((video.currentTime / video.duration) * 100);
-      }
+    const onPlay = () => { rafId = window.requestAnimationFrame(tick); };
+    const onPause = () => { window.cancelAnimationFrame(rafId); syncState(); };
+    const onSeeked = () => syncState();
+    const onDurationChange = () => {
+      if (Number.isFinite(video.duration)) setDuration(video.duration);
     };
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("seeked", onSeeked);
+    video.addEventListener("durationchange", onDurationChange);
 
     if (!video.paused && !video.ended) {
       rafId = window.requestAnimationFrame(tick);
     } else {
-      onSeeked();
+      syncState();
     }
 
     return () => {
@@ -818,6 +850,7 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("durationchange", onDurationChange);
       videoRef.current = null;
     };
   }, [assetId, postId]);
@@ -832,34 +865,47 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
       if (Number.isFinite(video.duration)) {
         video.currentTime = ratio * video.duration;
         setProgress(ratio * 100);
+        setCurrentTime(ratio * video.duration);
       }
     },
     []
   );
 
   return (
-    <div
-      className="absolute bottom-20 left-3 right-20 z-30 h-6"
-      onPointerCancel={() => (draggingRef.current = false)}
-      onPointerDown={(event) => {
-        draggingRef.current = true;
-        event.currentTarget.setPointerCapture(event.pointerId);
-        scrubTo(event.clientX);
-      }}
-      onPointerMove={(event) => {
-        if (draggingRef.current) scrubTo(event.clientX);
-      }}
-      onPointerUp={(event) => {
-        draggingRef.current = false;
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }}
-      ref={containerRef}
-    >
-      <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
-        <div
-          className="h-full rounded-full bg-accent-400 shadow-glow-accent"
-          style={{ width: `${progress}%` }}
-        />
+    <div className="absolute bottom-16 left-3 right-20 z-30 flex flex-col gap-1">
+      {duration > 0 ? (
+        <div className="flex justify-between px-0.5">
+          <span className="text-[10px] font-semibold tabular-nums text-white/70 drop-shadow-md">
+            {formatTime(currentTime)}
+          </span>
+          <span className="text-[10px] font-semibold tabular-nums text-white/45 drop-shadow-md">
+            {formatTime(duration)}
+          </span>
+        </div>
+      ) : null}
+      <div
+        className="h-6"
+        onPointerCancel={() => (draggingRef.current = false)}
+        onPointerDown={(event) => {
+          draggingRef.current = true;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          scrubTo(event.clientX);
+        }}
+        onPointerMove={(event) => {
+          if (draggingRef.current) scrubTo(event.clientX);
+        }}
+        onPointerUp={(event) => {
+          draggingRef.current = false;
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }}
+        ref={containerRef}
+      >
+        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
+          <div
+            className="h-full rounded-full bg-accent-400 shadow-glow-accent"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
     </div>
   );

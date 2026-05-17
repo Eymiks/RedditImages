@@ -3,8 +3,19 @@ import type { ImageAsset, ImagePost, RedditPostData } from "../types/reddit";
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
 type GalleryMetadata = NonNullable<RedditPostData["media_metadata"]>[string];
 
-export function normalizePosts(posts: RedditPostData[]): ImagePost[] {
+export interface NormalizeOptions {
+  allowNsfw?: boolean;
+}
+
+export function normalizePosts(
+  posts: RedditPostData[],
+  options: NormalizeOptions = {}
+): ImagePost[] {
+  const { allowNsfw = true } = options;
   return posts.flatMap((post) => {
+    if (!allowNsfw && post.over_18) {
+      return [];
+    }
     const assets = extractAssets(post);
     if (assets.length === 0) {
       return [];
@@ -18,6 +29,7 @@ export function normalizePosts(posts: RedditPostData[]): ImagePost[] {
         permalink: `https://www.reddit.com${post.permalink}`,
         nsfw: Boolean(post.over_18),
         score: post.score ?? 0,
+        numComments: post.num_comments ?? 0,
         author: post.author ?? "unknown",
         assets
       }

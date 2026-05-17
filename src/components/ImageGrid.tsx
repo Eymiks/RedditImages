@@ -1,4 +1,4 @@
-import { Bookmark, ExternalLink, Flame, Heart, Play } from "lucide-react";
+import { Bookmark, ExternalLink, Flame, Heart, Images, Play, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ImagePost } from "../types/reddit";
 import { haptic } from "../utils/haptics";
@@ -103,9 +103,12 @@ export function ImageGrid({
 
   if (posts.length === 0) {
     return (
-      <div className="glass rounded-3xl p-5 text-center">
+      <div className="flex flex-col items-center py-16 text-center">
+        <div className="glass mb-5 grid h-16 w-16 place-items-center rounded-full">
+          <Search className="text-moss-100/50" size={28} />
+        </div>
         <p className="text-sm font-semibold text-white">Aucun média trouvé</p>
-        <p className="mt-1 text-xs text-moss-100/65">Essaie un autre tri ou un autre subreddit.</p>
+        <p className="mt-1 text-xs text-moss-100/55">Essaie un autre tri ou un autre subreddit.</p>
       </div>
     );
   }
@@ -190,7 +193,8 @@ export function ImageGrid({
                   />
                 ) : null}
                 {post.assets.length > 1 ? (
-                  <span className="glass-dark grid h-5 min-w-[20px] place-items-center rounded-full px-1.5 text-[10px] font-bold text-white">
+                  <span className="glass-dark flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <Images size={9} />
                     {post.assets.length}
                   </span>
                 ) : null}
@@ -242,22 +246,28 @@ export function ImageGrid({
       <div ref={sentinelRef} />
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-2">
-          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
-          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
+            <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
+          </div>
+          <p className="text-center text-[11px] text-moss-100/40">Chargement…</p>
         </div>
       ) : null}
 
       {!hasMore && posts.length > 0 ? (
-        <a
-          className="glass mx-auto inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm text-moss-100/75"
-          href={posts.at(-1)?.permalink}
-          rel="noreferrer"
-          target="_blank"
-        >
-          Fin du feed
-          <ExternalLink size={15} />
-        </a>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-[11px] text-moss-100/40">{posts.length} posts chargés</p>
+          <a
+            className="glass inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm text-moss-100/75"
+            href={posts.at(-1)?.permalink}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Fin du feed
+            <ExternalLink size={15} />
+          </a>
+        </div>
       ) : null}
     </section>
   );

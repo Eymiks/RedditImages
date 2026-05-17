@@ -1,9 +1,11 @@
 export type SortName = "hot" | "new" | "top";
 export type TopPeriod = "day" | "week" | "month" | "year" | "all";
 
-export type FeedTab = "subreddits" | "favorites";
+export type FeedTab = "subreddits" | "favorites" | "multi" | "saved";
 
-export type FeedTarget = { kind: "subreddit"; name: string };
+export type FeedTarget =
+  | { kind: "subreddit"; name: string }
+  | { kind: "multi"; id: string; name: string; subreddits: string[] };
 
 export type MediaKind = "image" | "video";
 export type MediaSource = "reddit" | "imgur" | "redgifs";
@@ -25,6 +27,7 @@ export interface ImagePost {
   permalink: string;
   nsfw: boolean;
   score: number;
+  numComments: number;
   author: string;
   assets: ImageAsset[];
 }
@@ -50,6 +53,7 @@ export interface RedditPostData {
   permalink: string;
   over_18?: boolean;
   score?: number;
+  num_comments?: number;
   author?: string;
   url?: string;
   url_overridden_by_dest?: string;

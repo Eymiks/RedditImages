@@ -2,7 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchListing } from "../api/reddit";
 import type { FeedTarget, ImagePost, SortName, TopPeriod } from "../types/reddit";
 
-export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
+function getPrimaryDedupeKey(post: ImagePost): string | null {
+  const asset = post.assets[0];
+  if (!asset) return null;
+  if (asset.redgifsId) return `redgifs:${asset.redgifsId}`;
+  if (asset.url) return asset.url.split(/[?#]/)[0];
+  return null;
+}
+
+export function useFeed(
+  target: FeedTarget,
+  sort: SortName,
+  period: TopPeriod,
+  options: { allowNsfw?: boolean } = {}
+) {
+  const allowNsfw = options.allowNsfw ?? true;
   const [posts, setPosts] = useState<ImagePost[]>([]);
   const [after, setAfter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -10,11 +24,15 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const seenIds = useRef(new Set<string>());
+  const seenUrls = useRef(new Set<string>());
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
   const requestIdRef = useRef(0);
 
-  const feedKey = useMemo(() => JSON.stringify({ target, sort, period }), [period, sort, target]);
+  const feedKey = useMemo(
+    () => JSON.stringify({ target, sort, period, allowNsfw }),
+    [allowNsfw, period, sort, target]
+  );
 
   const loadPage = useCallback(
     async (nextAfter: string | null, reset: boolean) => {
@@ -33,10 +51,12 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
           target,
           sort,
           period,
-          after: nextAfter
+          after: nextAfter,
+          allowNsfw
         });
         if (reset) {
           seenIds.current = new Set();
+          seenUrls.current = new Set();
         }
 
         if (requestId !== requestIdRef.current) {
@@ -44,16 +64,18 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
         }
 
         const nextSeenIds = reset ? new Set<string>() : new Set(seenIds.current);
+        const nextSeenUrls = reset ? new Set<string>() : new Set(seenUrls.current);
         const unseenPosts = result.posts.filter((post) => {
-          if (nextSeenIds.has(post.id)) {
-            return false;
-          }
-
+          if (nextSeenIds.has(post.id)) return false;
+          const key = getPrimaryDedupeKey(post);
+          if (key && nextSeenUrls.has(key)) return false;
           nextSeenIds.add(post.id);
+          if (key) nextSeenUrls.add(key);
           return true;
         });
 
         seenIds.current = nextSeenIds;
+        seenUrls.current = nextSeenUrls;
         setPosts((current) => (reset ? unseenPosts : [...current, ...unseenPosts]));
         setAfter(result.after);
         hasMoreRef.current = Boolean(result.after);
@@ -73,7 +95,7 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
         }
       }
     },
-    [period, sort, target]
+    [allowNsfw, period, sort, target]
   );
 
   const loadMore = useCallback(async () => {
@@ -88,6 +110,7 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
     requestIdRef.current += 1;
     loadingRef.current = false;
     seenIds.current = new Set();
+    seenUrls.current = new Set();
     setPosts([]);
     setAfter(null);
     hasMoreRef.current = true;
@@ -100,6 +123,14 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
     void loadPage(null, true);
   }, [feedKey, loadPage]);
 
+  const refresh = useCallback(async () => {
+    requestIdRef.current += 1;
+    loadingRef.current = false;
+    hasMoreRef.current = true;
+    setHasMore(true);
+    await loadPage(null, true);
+  }, [loadPage]);
+
   return {
     posts,
     isLoading,
@@ -107,6 +138,7 @@ export function useFeed(target: FeedTarget, sort: SortName, period: TopPeriod) {
     error,
     hasMore,
     loadMore,
+    refresh,
     retry: () => loadPage(after, false)
   };
 }
