@@ -30,6 +30,7 @@ interface ImageViewerProps {
   onClose: () => void;
   onLoadMore: () => void;
   onToggleSave: (post: ImagePost) => void;
+  onNavigateToSubreddit?: (subreddit: string) => void;
 }
 
 type VideoRefMap = Map<string, HTMLVideoElement>;
@@ -66,7 +67,8 @@ export function ImageViewer({
   isSaved,
   onClose,
   onLoadMore,
-  onToggleSave
+  onToggleSave,
+  onNavigateToSubreddit
 }: ImageViewerProps) {
   const { settings, set: setSetting } = useSettings();
   const muted = settings.viewerMuted;
@@ -327,7 +329,10 @@ export function ImageViewer({
 
       {currentPost ? (
         <div className={`absolute inset-x-0 bottom-0 z-30 ${uiClass}`}>
-          <PostInfo post={currentPost} />
+          <PostInfo
+            onNavigateToSubreddit={onNavigateToSubreddit ? (sub) => { onClose(); onNavigateToSubreddit(sub); } : undefined}
+            post={currentPost}
+          />
         </div>
       ) : null}
     </div>
@@ -704,17 +709,29 @@ function ActionButton({ active, count, label, icon, onClick }: ActionButtonProps
 
 interface PostInfoProps {
   post: ImagePost;
+  onNavigateToSubreddit?: (subreddit: string) => void;
 }
 
-function PostInfo({ post }: PostInfoProps) {
+function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="pointer-events-none bg-gradient-to-t from-black/55 via-black/10 to-transparent px-3 pb-4 pt-6">
       <div className="mr-20 max-w-full">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-300/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-          r/{post.subreddit}
-          {post.author && post.author !== "unknown" ? ` · u/${post.author}` : ""}
-        </p>
+        {onNavigateToSubreddit ? (
+          <button
+            className="pointer-events-auto text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-300/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] active:text-accent-300"
+            onClick={() => { haptic("light"); onNavigateToSubreddit(post.subreddit); }}
+            type="button"
+          >
+            r/{post.subreddit}
+            {post.author && post.author !== "unknown" ? ` · u/${post.author}` : ""}
+          </button>
+        ) : (
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-300/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+            r/{post.subreddit}
+            {post.author && post.author !== "unknown" ? ` · u/${post.author}` : ""}
+          </p>
+        )}
         <p
           className={`mt-1 text-sm font-semibold leading-snug text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${
             expanded ? "" : "line-clamp-2"

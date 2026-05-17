@@ -119,7 +119,7 @@ export default function App() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-3 pb-32">
-      <header className="glass sticky top-0 z-20 -mx-3 rounded-b-3xl px-4 pb-3 pt-4">
+      <header className={`glass sticky top-0 z-20 -mx-3 rounded-b-3xl px-4 pt-4 transition-[padding] duration-300 ${headerCollapsed && showSearch ? "pb-1" : "pb-3"}`}>
         <div className="mb-3 flex items-start justify-between gap-3">
           <HeaderContext
             activeTab={activeTab}
@@ -194,9 +194,11 @@ export default function App() {
             isInitialLoading={isSavedTab ? false : feed.isInitialLoading}
             isLoading={isSavedTab ? false : feed.isLoading}
             isSaved={savedPosts.isSaved}
+            isSavedTab={isSavedTab}
             onLoadMore={feed.loadMore}
             onOpen={setViewerIndex}
             onRetry={feed.retry}
+            onSubredditTap={handleSubmitSubreddit}
             onToggleSave={savedPosts.toggle}
             posts={displayPosts}
           />
@@ -220,6 +222,7 @@ export default function App() {
           isSaved={savedPosts.isSaved}
           onClose={() => setViewerIndex(null)}
           onLoadMore={feed.loadMore}
+          onNavigateToSubreddit={handleSubmitSubreddit}
           onToggleSave={savedPosts.toggle}
           posts={displayPosts}
         />

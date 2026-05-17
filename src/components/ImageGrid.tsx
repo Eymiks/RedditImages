@@ -11,10 +11,12 @@ interface ImageGridProps {
   hasMore: boolean;
   isSaved: (id: string) => boolean;
   autoplay: boolean;
+  isSavedTab?: boolean;
   onOpen: (index: number) => void;
   onLoadMore: () => void;
   onRetry: () => void;
   onToggleSave: (post: ImagePost) => void;
+  onSubredditTap?: (subreddit: string) => void;
 }
 
 const DOUBLE_TAP_MS = 300;
@@ -27,10 +29,12 @@ export function ImageGrid({
   hasMore,
   isSaved,
   autoplay,
+  isSavedTab,
   onOpen,
   onLoadMore,
   onRetry,
-  onToggleSave
+  onToggleSave,
+  onSubredditTap
 }: ImageGridProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const lastTapRef = useRef<{ id: string; time: number } | null>(null);
@@ -105,6 +109,17 @@ export function ImageGrid({
   }
 
   if (posts.length === 0) {
+    if (isSavedTab) {
+      return (
+        <div className="flex flex-col items-center py-16 text-center">
+          <div className="glass mb-5 grid h-16 w-16 place-items-center rounded-full">
+            <Bookmark className="text-moss-100/50" size={28} />
+          </div>
+          <p className="text-sm font-semibold text-white">Aucune sauvegarde</p>
+          <p className="mt-1 text-xs text-moss-100/55">Double-tape une image pour la sauvegarder ici.</p>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center py-16 text-center">
         <div className="glass mb-5 grid h-16 w-16 place-items-center rounded-full">
@@ -129,6 +144,7 @@ export function ImageGrid({
               index={colIdx * 2}
               isSaved={isSaved(post.id)}
               key={post.id}
+              onSubredditTap={onSubredditTap}
               onTap={handleTap}
               post={post}
               showHeart={heartFor === post.id}
@@ -142,6 +158,7 @@ export function ImageGrid({
               index={colIdx * 2 + 1}
               isSaved={isSaved(post.id)}
               key={post.id}
+              onSubredditTap={onSubredditTap}
               onTap={handleTap}
               post={post}
               showHeart={heartFor === post.id}
@@ -193,9 +210,10 @@ interface PostCardProps {
   autoplay: boolean;
   showHeart: boolean;
   onTap: (index: number, post: ImagePost) => void;
+  onSubredditTap?: (subreddit: string) => void;
 }
 
-function PostCard({ post, index, isSaved, autoplay, showHeart, onTap }: PostCardProps) {
+function PostCard({ post, index, isSaved, autoplay, showHeart, onTap, onSubredditTap }: PostCardProps) {
   const asset = post.assets[0];
   const isVideo = asset?.kind === "video";
   const isRedgifs = asset?.source === "redgifs";
@@ -268,9 +286,19 @@ function PostCard({ post, index, isSaved, autoplay, showHeart, onTap }: PostCard
         <p className="line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
           {post.title}
         </p>
-        <span className="mt-1.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80">
-          r/{post.subreddit}
-        </span>
+        {onSubredditTap ? (
+          <button
+            className="pointer-events-auto mt-1.5 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80 active:bg-white/20"
+            onClick={(e) => { e.stopPropagation(); haptic("light"); onSubredditTap(post.subreddit); }}
+            type="button"
+          >
+            r/{post.subreddit}
+          </button>
+        ) : (
+          <span className="mt-1.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80">
+            r/{post.subreddit}
+          </span>
+        )}
       </div>
 
       {/* Top-left badges */}
