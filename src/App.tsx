@@ -1,7 +1,7 @@
 import { clearListingCache } from "./api/reddit";
 import { Layers, Loader2, Settings } from "lucide-react";
 import { useScrollDirection } from "./hooks/useScrollDirection";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { BottomNav } from "./components/BottomNav";
 import { CustomFeedManager } from "./components/CustomFeedManager";
 import { CustomFeedsStrip, FavoritesStrip } from "./components/FeedSelector";
@@ -265,7 +265,9 @@ interface PullIndicatorProps {
   triggered: boolean;
 }
 
-function PullIndicator({ pull, isRefreshing, triggered }: PullIndicatorProps) {
+// memo prevents the pull indicator state (which changes at ~60 fps during a
+// gesture) from triggering full App re-renders.
+const PullIndicator = memo(function PullIndicator({ pull, isRefreshing, triggered }: PullIndicatorProps) {
   if (pull <= 0 && !isRefreshing) return null;
   const scale = Math.min(1, pull / 70);
   return (
@@ -288,7 +290,7 @@ function PullIndicator({ pull, isRefreshing, triggered }: PullIndicatorProps) {
       </span>
     </div>
   );
-}
+});
 
 function MultiEmpty({ onOpenManager }: { onOpenManager: () => void }) {
   return (

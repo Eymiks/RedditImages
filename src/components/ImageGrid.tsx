@@ -1,5 +1,5 @@
 import { Bookmark, ExternalLink, Flame, Heart, Images, Play, Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ImagePost } from "../types/reddit";
 import { haptic } from "../utils/haptics";
 
@@ -40,19 +40,29 @@ export function ImageGrid({
   const lastTapRef = useRef<{ id: string; time: number } | null>(null);
   const [heartFor, setHeartFor] = useState<string | null>(null);
 
+  // Keep a stable ref so the IntersectionObserver callback can always access the
+  // latest onLoadMore without needing to be recreated when it changes.
+  const onLoadMoreRef = useRef(onLoadMore);
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore;
+  }, [onLoadMore]);
+
+  // Only depend on hasMore / isLoading so the observer is not torn down every
+  // time onLoadMore gets a new reference (which happens after each page load).
   useEffect(() => {
     if (!sentinelRef.current) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && hasMore && !isLoading) onLoadMore();
+        if (entry.isIntersecting && hasMore && !isLoading) onLoadMoreRef.current();
       },
       { rootMargin: "500px 0px" }
     );
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoading, onLoadMore]);
+  }, [hasMore, isLoading]);
 
-  const handleTap = (index: number, post: ImagePost) => {
+  // Stable callback — deps are the two props that actually change its behaviour.
+  const handleTap = useCallback((index: number, post: ImagePost) => {
     const now = Date.now();
     const last = lastTapRef.current;
     if (last && last.id === post.id && now - last.time < DOUBLE_TAP_MS) {
@@ -72,7 +82,15 @@ export function ImageGrid({
         onOpen(index);
       }
     }, DOUBLE_TAP_MS);
-  };
+  }, [onToggleSave, onOpen]);
+
+  // Memoized so column arrays are not re-computed on every render (e.g. when
+  // heartFor changes and only one PostCard needs updating).
+  // Must be declared before any early returns to obey the Rules of Hooks.
+  const [leftPosts, rightPosts] = useMemo(() => [
+    posts.filter((_, i) => i % 2 === 0),
+    posts.filter((_, i) => i % 2 === 1)
+  ], [posts]);
 
   if (isInitialLoading) {
     return (
@@ -130,9 +148,6 @@ export function ImageGrid({
       </div>
     );
   }
-
-  const leftPosts = posts.filter((_, i) => i % 2 === 0);
-  const rightPosts = posts.filter((_, i) => i % 2 === 1);
 
   return (
     <section className="space-y-4">
@@ -213,7 +228,9 @@ interface PostCardProps {
   onSubredditTap?: (subreddit: string) => void;
 }
 
-function PostCard({ post, index, isSaved, autoplay, showHeart, onTap, onSubredditTap }: PostCardProps) {
+// memo prevents re-rendering every PostCard when an unrelated card shows a heart
+// animation or when the parent ImageGrid receives new props with identical values.
+const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHeart, onTap, onSubredditTap }: PostCardProps) {
   const asset = post.assets[0];
   const isVideo = asset?.kind === "video";
   const isRedgifs = asset?.source === "redgifs";
@@ -287,13 +304,18 @@ function PostCard({ post, index, isSaved, autoplay, showHeart, onTap, onSubreddi
           {post.title}
         </p>
         {onSubredditTap ? (
-          <button
-            className="pointer-events-auto mt-1.5 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80 active:bg-white/20"
+          // Must not be a <button> here — PostCard's outer element is already a
+          // <button>, and nested interactive elements are invalid HTML.
+          // Using a <span> with role="button" preserves accessibility.
+          <span
+            className="pointer-events-auto mt-1.5 inline-block cursor-pointer rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80 active:bg-white/20"
             onClick={(e) => { e.stopPropagation(); haptic("light"); onSubredditTap(post.subreddit); }}
-            type="button"
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); haptic("light"); onSubredditTap(post.subreddit); } }}
+            role="button"
+            tabIndex={0}
           >
             r/{post.subreddit}
-          </button>
+          </span>
         ) : (
           <span className="mt-1.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80">
             r/{post.subreddit}
@@ -353,4 +375,4 @@ function PostCard({ post, index, isSaved, autoplay, showHeart, onTap, onSubreddi
       ) : null}
     </button>
   );
-}
+});

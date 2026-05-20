@@ -256,24 +256,42 @@ export function ImageViewer({
     >
       <div className="h-[100dvh] w-full overflow-hidden" ref={emblaRef}>
         <div className="flex h-full flex-col">
-          {posts.map((post, index) => (
-            <PostSlide
-              isCurrent={index === selectedIndex}
-              isNear={Math.abs(index - selectedIndex) <= 1}
-              key={post.id}
-              muted={muted}
-              onToggleSave={() => handleToggleSave(post)}
-              onToggleVideo={toggleCurrentVideo}
-              onUnmuteIfMuted={() => {
-                if (muted) {
-                  haptic("light");
-                  setSetting("viewerMuted", false);
-                }
-              }}
-              post={post}
-              setVideoRef={setVideoRef}
-            />
-          ))}
+          {posts.map((post, index) => {
+            const isCurrent = index === selectedIndex;
+            const isNear = Math.abs(index - selectedIndex) <= 1;
+            // Render a lightweight placeholder for slides more than 1 position
+            // away from the current one.  This avoids mounting Embla carousel
+            // instances, video elements and effects for all posts at once (which
+            // can be 25+ items).  When the user swipes toward a slide, it
+            // becomes "near" one step ahead so its full content is ready.
+            if (!isCurrent && !isNear) {
+              return (
+                <section
+                  aria-hidden
+                  className="relative h-[100dvh] w-full shrink-0 grow-0 basis-full bg-black"
+                  key={post.id}
+                />
+              );
+            }
+            return (
+              <PostSlide
+                isCurrent={isCurrent}
+                isNear={isNear}
+                key={post.id}
+                muted={muted}
+                onToggleSave={() => handleToggleSave(post)}
+                onToggleVideo={toggleCurrentVideo}
+                onUnmuteIfMuted={() => {
+                  if (muted) {
+                    haptic("light");
+                    setSetting("viewerMuted", false);
+                  }
+                }}
+                post={post}
+                setVideoRef={setVideoRef}
+              />
+            );
+          })}
           {hasMore || isLoadingMore ? (
             <LoadingSlide
               isLoading={isLoadingMore}

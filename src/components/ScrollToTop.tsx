@@ -1,14 +1,22 @@
 import { ChevronUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { haptic } from "../utils/haptics";
 
 const THRESHOLD = 600;
 
 export function ScrollToTop() {
   const [visible, setVisible] = useState(false);
+  // Avoid calling setState on every scroll event when value hasn't changed.
+  const visibleRef = useRef(false);
 
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > THRESHOLD);
+    const onScroll = () => {
+      const next = window.scrollY > THRESHOLD;
+      if (next !== visibleRef.current) {
+        visibleRef.current = next;
+        setVisible(next);
+      }
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
