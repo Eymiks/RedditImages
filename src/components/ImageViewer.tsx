@@ -733,11 +733,11 @@ interface PostInfoProps {
 function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="pointer-events-none bg-gradient-to-t from-black/55 via-black/10 to-transparent px-3 pb-4 pt-6">
+    <div className="pointer-events-none bg-gradient-to-t from-black/80 via-black/30 to-transparent px-3 pb-5 pt-10">
       <div className="mr-20 max-w-full">
         {onNavigateToSubreddit ? (
           <button
-            className="pointer-events-auto text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-300/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] active:text-accent-300"
+            className="pointer-events-auto mb-2 inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-300 backdrop-blur-sm transition-colors active:bg-white/20"
             onClick={() => { haptic("light"); onNavigateToSubreddit(post.subreddit); }}
             type="button"
           >
@@ -745,13 +745,13 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
             {post.author && post.author !== "unknown" ? ` · u/${post.author}` : ""}
           </button>
         ) : (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-300/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          <p className="mb-2 inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-300/85 backdrop-blur-sm">
             r/{post.subreddit}
             {post.author && post.author !== "unknown" ? ` · u/${post.author}` : ""}
           </p>
         )}
         <p
-          className={`mt-1 text-sm font-semibold leading-snug text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${
+          className={`text-sm font-semibold leading-snug text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
             expanded ? "" : "line-clamp-2"
           }`}
         >
@@ -759,7 +759,7 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
         </p>
         {post.title.length > 80 ? (
           <button
-            className="pointer-events-auto mt-1 text-xs font-semibold text-accent-300"
+            className="pointer-events-auto mt-1.5 text-xs font-semibold text-accent-300"
             onClick={() => setExpanded((value) => !value)}
             type="button"
           >
@@ -909,19 +909,19 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
   );
 
   return (
-    <div className="absolute bottom-16 left-3 right-20 z-30 flex flex-col gap-1">
+    <div className="absolute bottom-28 left-3 right-20 z-40 flex flex-col gap-1.5">
       {duration > 0 ? (
         <div className="flex justify-between px-0.5">
-          <span className="text-[10px] font-semibold tabular-nums text-white/70 drop-shadow-md">
+          <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white/90 backdrop-blur-sm">
             {formatTime(currentTime)}
           </span>
-          <span className="text-[10px] font-semibold tabular-nums text-white/45 drop-shadow-md">
+          <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white/50 backdrop-blur-sm">
             {formatTime(duration)}
           </span>
         </div>
       ) : null}
       <div
-        className="h-6"
+        className="relative h-8 cursor-pointer"
         onPointerCancel={() => (draggingRef.current = false)}
         onPointerDown={(event) => {
           draggingRef.current = true;
@@ -937,12 +937,16 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
         }}
         ref={containerRef}
       >
-        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
+        <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 overflow-hidden rounded-full bg-white/20">
           <div
             className="h-full rounded-full bg-accent-400 shadow-glow-accent"
             style={{ width: `${progress}%` }}
           />
         </div>
+        <div
+          className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg"
+          style={{ left: `${progress}%` }}
+        />
       </div>
     </div>
   );

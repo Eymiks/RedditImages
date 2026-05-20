@@ -1,7 +1,7 @@
 import { clearListingCache } from "./api/reddit";
 import { Layers, Loader2, Settings } from "lucide-react";
 import { useScrollDirection } from "./hooks/useScrollDirection";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BottomNav } from "./components/BottomNav";
 import { CustomFeedManager } from "./components/CustomFeedManager";
 import { CustomFeedsStrip, FavoritesStrip } from "./components/FeedSelector";
@@ -33,6 +33,7 @@ export default function App() {
   const [showFeedManager, setShowFeedManager] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [tabKey, setTabKey] = useState(0);
+  const skipNextPopState = useRef(false);
 
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const customFeeds = useCustomFeeds();
@@ -105,6 +106,63 @@ export default function App() {
     setTabKey((k) => k + 1);
   }, []);
 
+  const handleOpenViewer = useCallback((index: number) => {
+    history.pushState({ modal: "viewer" }, "");
+    setViewerIndex(index);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerIndex(null);
+    if (history.state?.modal) {
+      skipNextPopState.current = true;
+      history.back();
+    }
+  }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    history.pushState({ modal: "settings" }, "");
+    setShowSettings(true);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setShowSettings(false);
+    if (history.state?.modal) {
+      skipNextPopState.current = true;
+      history.back();
+    }
+  }, []);
+
+  const handleOpenFeedManager = useCallback(() => {
+    history.pushState({ modal: "feedManager" }, "");
+    setShowFeedManager(true);
+  }, []);
+
+  const handleCloseFeedManager = useCallback(() => {
+    setShowFeedManager(false);
+    if (history.state?.modal) {
+      skipNextPopState.current = true;
+      history.back();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      if (skipNextPopState.current) {
+        skipNextPopState.current = false;
+        return;
+      }
+      if (viewerIndex !== null) {
+        setViewerIndex(null);
+      } else if (showFeedManager) {
+        setShowFeedManager(false);
+      } else if (showSettings) {
+        setShowSettings(false);
+      }
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, [viewerIndex, showFeedManager, showSettings]);
+
   const refresh = useCallback(async () => {
     if (isSavedTab) return;
     await feed.refresh();
@@ -130,7 +188,7 @@ export default function App() {
           <button
             aria-label="Réglages"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-moss-100/80"
-            onClick={() => setShowSettings(true)}
+            onClick={handleOpenSettings}
             type="button"
           >
             <Settings size={18} />
@@ -169,7 +227,7 @@ export default function App() {
         {isMultiTab ? (
           <CustomFeedsStrip
             feeds={customFeeds.feeds}
-            onOpenManager={() => setShowFeedManager(true)}
+            onOpenManager={handleOpenFeedManager}
             onSelect={handleSelectCustomFeed}
             selectedFeedId={selectedFeedId}
           />
@@ -185,7 +243,7 @@ export default function App() {
         ) : null}
 
         {isMultiTab && !selectedFeed ? (
-          <MultiEmpty onOpenManager={() => setShowFeedManager(true)} />
+          <MultiEmpty onOpenManager={handleOpenFeedManager} />
         ) : (
           <ImageGrid
             autoplay={settings.autoplay}
@@ -196,7 +254,7 @@ export default function App() {
             isSaved={savedPosts.isSaved}
             isSavedTab={isSavedTab}
             onLoadMore={feed.loadMore}
-            onOpen={setViewerIndex}
+            onOpen={handleOpenViewer}
             onRetry={feed.retry}
             onSubredditTap={handleSubmitSubreddit}
             onToggleSave={savedPosts.toggle}
@@ -220,7 +278,7 @@ export default function App() {
           initialIndex={viewerIndex}
           isLoadingMore={isSavedTab ? false : feed.isLoading}
           isSaved={savedPosts.isSaved}
-          onClose={() => setViewerIndex(null)}
+          onClose={handleCloseViewer}
           onLoadMore={feed.loadMore}
           onNavigateToSubreddit={handleSubmitSubreddit}
           onToggleSave={savedPosts.toggle}
@@ -232,7 +290,7 @@ export default function App() {
         <CustomFeedManager
           favorites={favorites}
           feeds={customFeeds.feeds}
-          onClose={() => setShowFeedManager(false)}
+          onClose={handleCloseFeedManager}
           onCreate={customFeeds.create}
           onDelete={(id) => {
             customFeeds.remove(id);
@@ -249,7 +307,7 @@ export default function App() {
       {showSettings ? (
         <SettingsPopover
           onClearCache={clearListingCache}
-          onClose={() => setShowSettings(false)}
+          onClose={handleCloseSettings}
           onSet={setSetting}
           onToggle={toggleSetting}
           settings={settings}
