@@ -314,12 +314,12 @@ export function ImageViewer({
         onClick={onClose}
         type="button"
       >
-        <X size={18} />
+        <X size={16} />
       </button>
 
       {/* Counter — top center */}
       <p
-        className={`pointer-events-none absolute left-1/2 top-3 z-40 -translate-x-1/2 rounded-full glass-dark px-3 py-1 text-[11px] font-semibold tabular-nums text-white/80 ${uiClass}`}
+        className={`pointer-events-none absolute left-1/2 top-3 z-40 -translate-x-1/2 rounded-full glass-dark px-3 py-1 text-[10px] font-medium tabular-nums text-white/50 ${uiClass}`}
       >
         {selectedIndex + 1} / {posts.length}
       </p>
@@ -480,7 +480,7 @@ function PostSlide({
           {post.assets.map((_, index) => (
             <span
               className={`h-1.5 rounded-full transition-all duration-200 ${
-                index === assetIndex ? "w-5 bg-accent-400 shadow-glow-accent" : "w-1.5 bg-white/40"
+                index === assetIndex ? "w-4 bg-accent-400" : "w-1.5 bg-white/25"
               }`}
               key={index}
             />
@@ -687,30 +687,29 @@ function ActionColumn({
   onMute
 }: ActionColumnProps) {
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3">
       <ActionButton
         active={saved}
-        icon={<Bookmark fill={saved ? "currentColor" : "none"} size={18} />}
-        label="Garder"
+        icon={<Bookmark fill={saved ? "currentColor" : "none"} size={17} />}
         onClick={onSave}
       />
-      <ActionButton
-        count={formatCount(comments)}
-        icon={<MessageCircle size={18} />}
-        label="Voir"
-        onClick={onComments}
-      />
-      <ActionButton icon={<Share2 size={18} />} label="Partager" onClick={onShare} />
+      <div className="flex flex-col items-center gap-0.5">
+        <ActionButton
+          icon={<MessageCircle size={17} />}
+          onClick={onComments}
+        />
+        <span className="text-[10px] tabular-nums text-white/40">{formatCount(comments)}</span>
+      </div>
+      <ActionButton icon={<Share2 size={17} />} onClick={onShare} />
       {onMute ? (
         <ActionButton
-          icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          label={muted ? "Muet" : "Son"}
+          icon={muted ? <VolumeX size={17} /> : <Volume2 size={17} />}
           onClick={onMute}
         />
       ) : null}
-      <div className="mt-0.5 flex flex-col items-center gap-0.5 glass-dark rounded-full px-2 py-1.5 text-[10px] font-bold tabular-nums">
-        <ArrowUp size={12} strokeWidth={2.5} />
-        <span>{formatCount(score)}</span>
+      <div className="mt-1 flex flex-col items-center gap-0.5">
+        <ArrowUp size={11} strokeWidth={2.5} className="text-white/35" />
+        <span className="text-[10px] font-semibold tabular-nums text-white/50">{formatCount(score)}</span>
       </div>
     </div>
   );
@@ -718,29 +717,22 @@ function ActionColumn({
 
 interface ActionButtonProps {
   active?: boolean;
-  count?: string;
-  label?: string;
   icon: React.ReactNode;
   onClick: () => void;
 }
 
-function ActionButton({ active, count, label, icon, onClick }: ActionButtonProps) {
+function ActionButton({ active, icon, onClick }: ActionButtonProps) {
   return (
     <button
-      className="flex flex-col items-center gap-0.5 transition-transform active:scale-90"
+      className={`grid h-10 w-10 place-items-center rounded-2xl ring-1 transition-transform active:scale-90 ${
+        active
+          ? "bg-accent-400/20 text-accent-300 ring-accent-400/40"
+          : "bg-white/[0.08] text-white/80 ring-white/10"
+      }`}
       onClick={onClick}
       type="button"
     >
-      <span
-        className={`grid h-11 w-11 place-items-center rounded-full backdrop-blur-md transition-colors ${
-          active ? "bg-accent-400 text-surface-950 shadow-glow-accent-strong" : "bg-black/40 text-white"
-        }`}
-      >
-        {icon}
-      </span>
-      <span className="text-[9px] font-semibold tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-        {count ?? label}
-      </span>
+      {icon}
     </button>
   );
 }
@@ -753,25 +745,29 @@ interface PostInfoProps {
 function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="pointer-events-none bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pb-5 pt-16">
-      <div className="mr-16 max-w-full">
+    <div className="pointer-events-none bg-gradient-to-t from-black/90 via-black/55 to-transparent px-4 pb-5 pt-28">
+      <div className="mr-14 max-w-full">
         {onNavigateToSubreddit ? (
           <button
-            className="pointer-events-auto mb-2 inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-300 backdrop-blur-sm transition-colors active:bg-white/20"
+            className="pointer-events-auto mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[10px] font-semibold text-accent-300 backdrop-blur-sm transition-colors active:bg-white/15"
             onClick={() => { haptic("light"); onNavigateToSubreddit(post.subreddit); }}
             type="button"
           >
             r/{post.subreddit}
-            {post.author && post.author !== "unknown" ? ` · u/${post.author}` : ""}
+            {post.author && post.author !== "unknown" ? (
+              <span className="text-white/35"> · {post.author}</span>
+            ) : null}
           </button>
         ) : (
-          <p className="mb-2 inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-300/85 backdrop-blur-sm">
+          <p className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[10px] font-semibold text-accent-300/85 backdrop-blur-sm">
             r/{post.subreddit}
-            {post.author && post.author !== "unknown" ? ` · u/${post.author}` : ""}
+            {post.author && post.author !== "unknown" ? (
+              <span className="text-white/35"> · {post.author}</span>
+            ) : null}
           </p>
         )}
         <p
-          className={`text-[15px] font-bold leading-snug text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+          className={`text-[14px] font-semibold leading-[1.35] text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
             expanded ? "" : "line-clamp-2"
           }`}
         >
@@ -779,7 +775,7 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
         </p>
         {post.title.length > 80 ? (
           <button
-            className="pointer-events-auto mt-1.5 text-xs font-semibold text-accent-300"
+            className="pointer-events-auto mt-1 text-[10px] font-medium text-white/35"
             onClick={() => setExpanded((value) => !value)}
             type="button"
           >
@@ -879,70 +875,58 @@ function VideoControls({ postId, assetId, muted, onToggleMute, onTogglePlay }: V
   );
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-[35] bg-gradient-to-t from-black/70 to-transparent px-3 pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] pt-10">
-      {/* Controls row: play/pause · scrubber · time · mute */}
-      <div className="flex items-center gap-3">
-        {/* Play / Pause */}
+    <div className="absolute inset-x-0 bottom-0 z-[35] px-4 pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] pt-4">
+      <div className="flex items-center gap-2.5">
         <button
           aria-label={isPlaying ? "Pause" : "Lecture"}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 backdrop-blur-md transition-transform active:scale-90"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 transition-transform active:scale-95"
           onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
           type="button"
         >
           {isPlaying ? <Pause fill="currentColor" size={16} /> : <Play fill="currentColor" size={16} />}
         </button>
 
-        {/* Scrubber + time */}
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          {duration > 0 ? (
-            <div className="flex justify-between">
-              <span className="text-[10px] font-semibold tabular-nums text-white/80">
-                {formatTime(currentTime)}
-              </span>
-              <span className="text-[10px] font-semibold tabular-nums text-white/40">
-                {formatTime(duration)}
-              </span>
-            </div>
-          ) : null}
-          <div
-            className="relative h-11 cursor-pointer"
-            onPointerCancel={() => (draggingRef.current = false)}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-              draggingRef.current = true;
-              event.currentTarget.setPointerCapture(event.pointerId);
-              scrubTo(event.clientX);
-            }}
-            onPointerMove={(event) => {
-              if (draggingRef.current) scrubTo(event.clientX);
-            }}
-            onPointerUp={(event) => {
-              draggingRef.current = false;
-              event.currentTarget.releasePointerCapture(event.pointerId);
-            }}
-            ref={containerRef}
-          >
-            <div className="absolute inset-x-0 top-1/2 h-[5px] -translate-y-1/2 overflow-hidden rounded-full bg-white/20">
-              <div
-                className="h-full rounded-full bg-accent-400 shadow-glow-accent"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+        <div
+          className="relative h-11 min-w-0 flex-1 cursor-pointer"
+          onPointerCancel={() => (draggingRef.current = false)}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            draggingRef.current = true;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            scrubTo(event.clientX);
+          }}
+          onPointerMove={(event) => {
+            if (draggingRef.current) scrubTo(event.clientX);
+          }}
+          onPointerUp={(event) => {
+            draggingRef.current = false;
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+          ref={containerRef}
+        >
+          <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
             <div
-              className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg"
-              style={{ left: `${progress}%` }}
+              className="h-full rounded-full bg-accent-400"
+              style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        {/* Mute */}
+        {duration > 0 ? (
+          <span className="shrink-0 text-[10px] tabular-nums text-white/50">
+            {formatTime(currentTime)}
+            <span className="text-white/25"> / </span>
+            {formatTime(duration)}
+          </span>
+        ) : null}
+
         <button
           aria-label={muted ? "Activer le son" : "Couper le son"}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 backdrop-blur-md transition-transform active:scale-90"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 transition-transform active:scale-95"
           onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
           type="button"
         >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
       </div>
     </div>
