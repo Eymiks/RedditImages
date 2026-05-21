@@ -81,11 +81,3 @@ export interface RedditPostData {
     }
   >;
 }
-
-export interface AuthSession {
-  accessToken: string;
-  refreshToken: string | null;
-  expiresAt: number;
-  username: string;
-  avatarUrl: string | null;
-}

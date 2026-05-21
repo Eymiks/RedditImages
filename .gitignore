@@ -5,4 +5,5 @@ dist
 vite-dev*.log
 *.tsbuildinfo
 .wrangler
+.playwright-mcp/
 .dev.vars
