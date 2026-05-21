@@ -96,16 +96,16 @@ export function ImageGrid({
     return (
       <div className="flex gap-2">
         <div className="flex flex-1 flex-col gap-2">
-          <div className="shimmer-bg aspect-[2/3] animate-shimmer rounded-3xl" />
-          <div className="shimmer-bg aspect-[4/5] animate-shimmer rounded-3xl" />
-          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
-          <div className="shimmer-bg aspect-[1/1] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[2/3] animate-shimmer rounded-2xl" />
+          <div className="shimmer-bg aspect-[4/5] animate-shimmer rounded-2xl" />
+          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-2xl" />
+          <div className="shimmer-bg aspect-[1/1] animate-shimmer rounded-2xl" />
         </div>
         <div className="flex flex-1 flex-col gap-2">
-          <div className="shimmer-bg aspect-[4/5] animate-shimmer rounded-3xl" />
-          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-3xl" />
-          <div className="shimmer-bg aspect-[2/3] animate-shimmer rounded-3xl" />
-          <div className="shimmer-bg aspect-[3/5] animate-shimmer rounded-3xl" />
+          <div className="shimmer-bg aspect-[4/5] animate-shimmer rounded-2xl" />
+          <div className="shimmer-bg aspect-[3/4] animate-shimmer rounded-2xl" />
+          <div className="shimmer-bg aspect-[2/3] animate-shimmer rounded-2xl" />
+          <div className="shimmer-bg aspect-[3/5] animate-shimmer rounded-2xl" />
         </div>
       </div>
     );
@@ -113,7 +113,7 @@ export function ImageGrid({
 
   if (error && posts.length === 0) {
     return (
-      <div className="glass rounded-3xl border-red-300/20 bg-red-500/10 p-5">
+      <div className="glass rounded-2xl border-red-300/20 bg-red-500/10 p-5">
         <p className="text-sm text-red-100">{error}</p>
         <button
           className="mt-3 rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-950"
@@ -131,20 +131,20 @@ export function ImageGrid({
       return (
         <div className="flex flex-col items-center py-16 text-center">
           <div className="glass mb-5 grid h-16 w-16 place-items-center rounded-full">
-            <Bookmark className="text-moss-100/50" size={28} />
+            <Bookmark className="text-white/40" size={28} />
           </div>
           <p className="text-sm font-semibold text-white">Aucune sauvegarde</p>
-          <p className="mt-1 text-xs text-moss-100/55">Double-tape une image pour la sauvegarder ici.</p>
+          <p className="mt-1 text-xs text-white/45">Double-tape une image pour la sauvegarder ici.</p>
         </div>
       );
     }
     return (
       <div className="flex flex-col items-center py-16 text-center">
         <div className="glass mb-5 grid h-16 w-16 place-items-center rounded-full">
-          <Search className="text-moss-100/50" size={28} />
+          <Search className="text-white/40" size={28} />
         </div>
         <p className="text-sm font-semibold text-white">Aucun média trouvé</p>
-        <p className="mt-1 text-xs text-moss-100/55">Essaie un autre tri ou un autre subreddit.</p>
+        <p className="mt-1 text-xs text-white/45">Essaie un autre tri ou un autre subreddit.</p>
       </div>
     );
   }
@@ -193,18 +193,18 @@ export function ImageGrid({
       {isLoading ? (
         <div className="space-y-2">
           <div className="flex gap-2">
-            <div className="shimmer-bg aspect-[3/4] flex-1 animate-shimmer rounded-3xl" />
-            <div className="shimmer-bg aspect-[4/5] flex-1 animate-shimmer rounded-3xl" />
+            <div className="shimmer-bg aspect-[3/4] flex-1 animate-shimmer rounded-2xl" />
+            <div className="shimmer-bg aspect-[4/5] flex-1 animate-shimmer rounded-2xl" />
           </div>
-          <p className="text-center text-[11px] text-moss-100/40">Chargement…</p>
+          <p className="text-center text-[11px] text-white/35">Chargement…</p>
         </div>
       ) : null}
 
       {!hasMore && posts.length > 0 ? (
         <div className="flex flex-col items-center gap-2">
-          <p className="text-[11px] text-moss-100/40">{posts.length} posts chargés</p>
+          <p className="text-[11px] text-white/35">{posts.length} posts chargés</p>
           <a
-            className="glass inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm text-moss-100/75"
+            className="glass inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm text-white/60"
             href={posts.at(-1)?.permalink}
             rel="noreferrer"
             target="_blank"
@@ -237,8 +237,9 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
 
   return (
     <button
-      className="group relative w-full overflow-hidden rounded-3xl bg-black/40 text-left shadow-glow transition-transform duration-200 active:scale-[0.97]"
+      className="group relative w-full overflow-hidden rounded-2xl bg-black/40 text-left shadow-glow-card transition-transform duration-200 active:scale-[0.97] animate-scale-in"
       onClick={() => onTap(index, post)}
+      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
       type="button"
     >
       {/* Media content */}
@@ -298,8 +299,8 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
         <div className="aspect-[3/4] bg-black/40" />
       )}
 
-      {/* Bottom overlay */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 pt-10">
+      {/* Bottom overlay — stronger gradient for readability */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-12">
         <p className="line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
           {post.title}
         </p>
@@ -308,7 +309,7 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
           // <button>, and nested interactive elements are invalid HTML.
           // Using a <span> with role="button" preserves accessibility.
           <span
-            className="pointer-events-auto mt-1.5 inline-block cursor-pointer rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80 active:bg-white/20"
+            className="pointer-events-auto mt-1.5 inline-block cursor-pointer rounded-full bg-surface-900/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent-300/90 backdrop-blur-sm active:bg-white/20"
             onClick={(e) => { e.stopPropagation(); haptic("light"); onSubredditTap(post.subreddit); }}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); haptic("light"); onSubredditTap(post.subreddit); } }}
             role="button"
@@ -317,30 +318,25 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
             r/{post.subreddit}
           </span>
         ) : (
-          <span className="mt-1.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-moss-100/80">
+          <span className="mt-1.5 inline-block rounded-full bg-surface-900/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent-300/80 backdrop-blur-sm">
             r/{post.subreddit}
           </span>
         )}
       </div>
 
-      {/* Top-left badges */}
-      <div className="absolute left-2 top-2 flex items-center gap-1.5">
+      {/* Top-right badges — NSFW + gallery count */}
+      <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
         {post.nsfw ? (
-          <span
-            aria-label="NSFW"
-            className="h-2.5 w-2.5 rounded-full bg-red-500 ring-1 ring-red-200/40 ring-offset-1 ring-offset-black/30"
-          />
+          <span className="glass-dark rounded-md px-1.5 py-0.5 text-[10px] font-bold text-red-300">
+            NSFW
+          </span>
         ) : null}
         {post.assets.length > 1 ? (
-          <span className="glass-dark flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+          <span className="glass-dark flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white">
             <Images size={9} />
             {post.assets.length}
           </span>
         ) : null}
-      </div>
-
-      {/* Top-right badges */}
-      <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
         {isRedgifs ? (
           <span
             aria-label="Redgifs"
@@ -357,8 +353,8 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
           </span>
         ) : null}
         {isSaved ? (
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-accent-400 text-moss-950 shadow-glow-accent">
-            <Bookmark fill="currentColor" size={13} />
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-accent-400 text-surface-950 shadow-glow-accent">
+            <Bookmark fill="currentColor" size={11} />
           </span>
         ) : null}
       </div>
@@ -367,7 +363,7 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
       {showHeart ? (
         <span className="pointer-events-none absolute inset-0 grid place-items-center">
           <Heart
-            className="text-accent-300 drop-shadow-[0_0_25px_rgba(34,211,238,0.85)] animate-heart-pop"
+            className="text-accent-300 drop-shadow-[0_0_25px_rgba(56,189,248,0.85)] animate-heart-pop"
             fill="currentColor"
             size={72}
           />

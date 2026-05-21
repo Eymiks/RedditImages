@@ -11,7 +11,7 @@ interface FavoritesStripProps {
 export function FavoritesStrip({ favorites, selectedSubreddit, onSelect }: FavoritesStripProps) {
   if (favorites.length === 0) {
     return (
-      <p className="px-1 text-sm text-moss-100/65">
+      <p className="px-1 text-sm text-white/50">
         Aucun favori. Tap sur l'étoile à droite du champ pour en ajouter.
       </p>
     );
@@ -23,10 +23,10 @@ export function FavoritesStrip({ favorites, selectedSubreddit, onSelect }: Favor
         const initial = favorite[0]?.toUpperCase() ?? "?";
         return (
           <button
-            className={`flex shrink-0 items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-sm font-semibold transition-all duration-200 ${
+            className={`relative flex shrink-0 items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-sm font-semibold transition-all duration-200 ${
               active
-                ? "bg-accent-400/20 text-accent-300 shadow-glow-accent"
-                : "bg-white/6 text-moss-100/70 hover:bg-white/10"
+                ? "bg-accent-400/15 text-accent-400"
+                : "bg-white/[0.05] text-white/60 hover:bg-white/10"
             }`}
             key={favorite}
             onClick={() => {
@@ -37,7 +37,7 @@ export function FavoritesStrip({ favorites, selectedSubreddit, onSelect }: Favor
           >
             <span
               className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-black ${
-                active ? "bg-accent-400 text-moss-950" : "bg-white/12 text-white/80"
+                active ? "bg-accent-400 text-surface-950" : "bg-white/10 text-white/70"
               }`}
             >
               {initial}
@@ -82,7 +82,7 @@ export function CustomFeedsStrip({
             <p className="text-sm font-semibold">{feed.name}</p>
             <p
               className={`text-[10px] uppercase tracking-wider ${
-                active ? "text-moss-950/70" : "text-moss-100/55"
+                active ? "text-surface-950/70" : "text-white/45"
               }`}
             >
               {feed.subreddits.length} sub{feed.subreddits.length > 1 ? "s" : ""}
@@ -91,7 +91,7 @@ export function CustomFeedsStrip({
         );
       })}
       <button
-        className="shrink-0 rounded-2xl border border-dashed border-accent-400/40 bg-accent-400/5 px-4 py-2 text-sm font-semibold text-accent-200 hover:bg-accent-400/10"
+        className="shrink-0 rounded-2xl border border-dashed border-accent-400/40 bg-accent-400/5 px-4 py-2 text-sm font-semibold text-accent-300 hover:bg-accent-400/10"
         onClick={() => {
           haptic("light");
           onOpenManager();

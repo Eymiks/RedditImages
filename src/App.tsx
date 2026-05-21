@@ -1,6 +1,5 @@
 import { clearListingCache } from "./api/reddit";
-import { Layers, Loader2, Settings } from "lucide-react";
-import { useScrollDirection } from "./hooks/useScrollDirection";
+import { Layers, Loader2, Search, Settings } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BottomNav } from "./components/BottomNav";
 import { CustomFeedManager } from "./components/CustomFeedManager";
@@ -9,9 +8,9 @@ import { HeaderContext } from "./components/HeaderContext";
 import { ImageGrid } from "./components/ImageGrid";
 import { ImageViewer } from "./components/ImageViewer";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { SearchModal } from "./components/SearchModal";
 import { SettingsPopover } from "./components/SettingsPopover";
 import { SortBar } from "./components/SortBar";
-import { SubredditInput } from "./components/SubredditInput";
 import type { CustomFeed } from "./hooks/useCustomFeeds";
 import { useCustomFeeds } from "./hooks/useCustomFeeds";
 import { useFavorites, normalizeSubreddit } from "./hooks/useFavorites";
@@ -32,6 +31,7 @@ export default function App() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [showFeedManager, setShowFeedManager] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [tabKey, setTabKey] = useState(0);
   const skipNextPopState = useRef(false);
 
@@ -145,6 +145,19 @@ export default function App() {
     }
   }, []);
 
+  const handleOpenSearch = useCallback(() => {
+    history.pushState({ modal: "search" }, "");
+    setShowSearchModal(true);
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setShowSearchModal(false);
+    if (history.state?.modal) {
+      skipNextPopState.current = true;
+      history.back();
+    }
+  }, []);
+
   useEffect(() => {
     const handler = () => {
       if (skipNextPopState.current) {
@@ -157,11 +170,13 @@ export default function App() {
         setShowFeedManager(false);
       } else if (showSettings) {
         setShowSettings(false);
+      } else if (showSearchModal) {
+        setShowSearchModal(false);
       }
     };
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
-  }, [viewerIndex, showFeedManager, showSettings]);
+  }, [viewerIndex, showFeedManager, showSettings, showSearchModal]);
 
   const refresh = useCallback(async () => {
     if (isSavedTab) return;
@@ -170,46 +185,41 @@ export default function App() {
 
   const ptr = usePullToRefresh({
     onRefresh: refresh,
-    enabled: !isSavedTab && viewerIndex === null && !showFeedManager && !showSettings
+    enabled: !isSavedTab && viewerIndex === null && !showFeedManager && !showSettings && !showSearchModal
   });
-
-  const headerCollapsed = useScrollDirection();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-3 pb-32">
-      <header className={`glass sticky top-0 z-20 -mx-3 rounded-b-3xl px-4 pt-4 transition-[padding] duration-300 ${headerCollapsed && showSearch ? "pb-1" : "pb-3"}`}>
-        <div className="mb-3 flex items-start justify-between gap-3">
+      <header className="glass sticky top-0 z-20 -mx-3 rounded-b-3xl px-4 pb-3 pt-4">
+        <div className="flex items-center justify-between gap-3">
           <HeaderContext
             activeTab={activeTab}
             customFeed={selectedFeed}
             savedCount={savedPosts.list.length}
             subreddit={subreddit}
           />
-          <button
-            aria-label="Réglages"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-moss-100/80"
-            onClick={handleOpenSettings}
-            type="button"
-          >
-            <Settings size={18} />
-          </button>
-        </div>
-
-        {showSearch ? (
-          <div
-            className={`overflow-hidden transition-all duration-300 ${
-              headerCollapsed ? "max-h-0 opacity-0 pointer-events-none" : "max-h-20 opacity-100"
-            }`}
-          >
-            <SubredditInput
-              isFavorite={isFavorite(subreddit)}
-              onSubmit={handleSubmitSubreddit}
-              onToggleFavorite={() => toggleFavorite(subreddit)}
-              recent={recent}
-              value={subreddit}
-            />
+          <div className="flex shrink-0 items-center gap-2">
+            {showSearch ? (
+              <button
+                aria-label="Chercher un subreddit"
+                className="flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 text-white/50 transition-colors active:bg-white/10"
+                onClick={handleOpenSearch}
+                type="button"
+              >
+                <Search size={15} />
+                <span className="max-w-[80px] truncate text-xs font-medium">r/{subreddit}</span>
+              </button>
+            ) : null}
+            <button
+              aria-label="Réglages"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-white/70"
+              onClick={handleOpenSettings}
+              type="button"
+            >
+              <Settings size={16} />
+            </button>
           </div>
-        ) : null}
+        </div>
       </header>
 
       <PullIndicator pull={ptr.pull} isRefreshing={ptr.isRefreshing} triggered={ptr.triggered} />
@@ -313,6 +323,17 @@ export default function App() {
           settings={settings}
         />
       ) : null}
+
+      {showSearchModal ? (
+        <SearchModal
+          isFavorite={isFavorite(subreddit)}
+          onClose={handleCloseSearch}
+          onSubmit={handleSubmitSubreddit}
+          onToggleFavorite={() => toggleFavorite(subreddit)}
+          recent={recent}
+          value={subreddit}
+        />
+      ) : null}
     </div>
   );
 }
@@ -359,11 +380,11 @@ function MultiEmpty({ onOpenManager }: { onOpenManager: () => void }) {
       <p className="text-base font-semibold tracking-tight text-white">
         Crée un mix de subreddits
       </p>
-      <p className="max-w-[260px] text-xs text-moss-100/65">
+      <p className="max-w-[260px] text-xs text-white/55">
         Combine plusieurs subreddits dans un même feed pour les parcourir d'un coup, trié par hot/new/top.
       </p>
       <button
-        className="mt-1 rounded-full bg-accent-400 px-5 py-2 text-sm font-bold text-moss-950 shadow-glow-accent-strong"
+        className="mt-1 rounded-full bg-accent-400 px-5 py-2 text-sm font-bold text-surface-950 shadow-glow-accent-strong"
         onClick={onOpenManager}
         type="button"
       >

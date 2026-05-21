@@ -8,6 +8,7 @@ interface SubredditInputProps {
   value: string;
   isFavorite: boolean;
   recent: string[];
+  autoFocus?: boolean;
   onSubmit: (name: string) => void;
   onToggleFavorite: () => void;
 }
@@ -16,6 +17,7 @@ export function SubredditInput({
   value,
   isFavorite,
   recent,
+  autoFocus,
   onSubmit,
   onToggleFavorite
 }: SubredditInputProps) {
@@ -87,9 +89,10 @@ export function SubredditInput({
         }}
       >
         <label className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-moss-100/55" size={18} />
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/45" size={18} />
           <input
-            className="h-12 w-full rounded-2xl border border-white/10 bg-white/8 pl-10 pr-10 text-base text-white outline-none ring-accent-400/60 placeholder:text-moss-100/45 focus:ring-2"
+            autoFocus={autoFocus}
+            className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.08] pl-10 pr-10 text-base text-white outline-none ring-accent-400/60 placeholder:text-white/35 focus:ring-2"
             inputMode="search"
             onChange={(event) => setDraft(event.target.value)}
             onFocus={() => setFocused(true)}
@@ -99,7 +102,7 @@ export function SubredditInput({
           {draft ? (
             <button
               aria-label="Effacer"
-              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-moss-100/75"
+              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white/75"
               onClick={() => {
                 setDraft("");
                 setSuggestions([]);
@@ -115,7 +118,7 @@ export function SubredditInput({
           className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl border transition-all ${
             isFavorite
               ? "border-yellow-300/50 bg-yellow-300/15 text-yellow-200 shadow-[0_0_20px_-6px_rgba(253,224,71,0.6)]"
-              : "border-white/10 bg-white/8 text-moss-100/70"
+              : "border-white/10 bg-white/[0.08] text-white/60"
           }`}
           onClick={() => {
             haptic("light");
@@ -143,7 +146,7 @@ export function SubredditInput({
                     </span>
                     <span className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-white">r/{suggestion.name}</p>
-                      <p className="truncate text-xs text-moss-100/65">
+                      <p className="truncate text-xs text-white/55">
                         {formatSubscribers(suggestion.subscribers)} membres
                       </p>
                     </span>
@@ -156,7 +159,7 @@ export function SubredditInput({
             </ul>
           ) : draft.trim().length < 2 && recent.length > 0 ? (
             <div>
-              <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-moss-100/55">
+              <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/45">
                 <History size={14} />
                 Récents
               </div>
@@ -164,7 +167,7 @@ export function SubredditInput({
                 {recent.map((name) => (
                   <li key={name}>
                     <button
-                      className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm text-moss-100/85 transition-colors hover:bg-white/10"
+                      className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm text-white/80 transition-colors hover:bg-white/10"
                       onClick={() => submit(name)}
                       type="button"
                     >
@@ -176,7 +179,7 @@ export function SubredditInput({
             </div>
           ) : null}
           {loading ? (
-            <p className="px-2 py-2 text-xs text-moss-100/55">Recherche…</p>
+            <p className="px-2 py-2 text-xs text-white/45">Recherche…</p>
           ) : null}
         </div>
       ) : null}

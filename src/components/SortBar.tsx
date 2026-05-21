@@ -11,9 +11,9 @@ interface SortBarProps {
 }
 
 const sorts: { id: SortName; label: string; icon: ReactNode }[] = [
-  { id: "hot", label: "Hot", icon: <Flame size={14} /> },
-  { id: "new", label: "Nouveau", icon: <Zap size={14} /> },
-  { id: "top", label: "Top", icon: <TrendingUp size={14} /> }
+  { id: "hot", label: "Hot", icon: <Flame size={13} /> },
+  { id: "new", label: "Nouveau", icon: <Zap size={13} /> },
+  { id: "top", label: "Top", icon: <TrendingUp size={13} /> }
 ];
 
 const periods: TopPeriod[] = ["day", "week", "month", "year", "all"];
@@ -28,42 +28,41 @@ const periodLabel: Record<TopPeriod, string> = {
 
 export function SortBar({ sort, period, onSortChange, onPeriodChange }: SortBarProps) {
   return (
-    <div className="space-y-2">
-      <div className="glass grid grid-cols-3 gap-1 rounded-2xl p-1">
-        {sorts.map((item) => {
-          const active = sort === item.id;
-          return (
-            <button
-              className={`flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm transition-all duration-200 ${
-                active
-                  ? "bg-accent-400 text-moss-950 font-extrabold shadow-glow-accent-strong"
-                  : "font-semibold text-moss-100/55 hover:text-moss-100/85"
-              }`}
-              key={item.id}
-              onClick={() => {
-                if (!active) {
-                  haptic("light");
-                  onSortChange(item.id);
-                }
-              }}
-              type="button"
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
+    <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+      {sorts.map((item) => {
+        const active = sort === item.id;
+        return (
+          <button
+            className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs transition-all duration-200 ${
+              active
+                ? "bg-accent-400 font-extrabold text-surface-950 shadow-glow-accent-strong"
+                : "border border-white/10 bg-white/[0.04] font-semibold text-white/50 hover:text-white/80"
+            }`}
+            key={item.id}
+            onClick={() => {
+              if (!active) {
+                haptic("light");
+                onSortChange(item.id);
+              }
+            }}
+            type="button"
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        );
+      })}
       {sort === "top" ? (
-        <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1 animate-fade-in">
+        <>
+          <span className="shrink-0 text-white/20">·</span>
           {periods.map((item) => {
             const active = period === item;
             return (
               <button
-                className={`shrink-0 rounded-full text-[11px] transition-all duration-200 ${
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-all duration-200 animate-scale-in ${
                   active
-                    ? "bg-accent-400 px-4 py-1.5 font-extrabold text-moss-950 shadow-glow-accent-strong"
-                    : "border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-moss-100/55 hover:text-moss-100/85"
+                    ? "bg-accent-400 font-extrabold text-surface-950 shadow-glow-accent-strong"
+                    : "border border-white/10 bg-white/[0.04] font-semibold text-white/50 hover:text-white/80"
                 }`}
                 key={item}
                 onClick={() => {
@@ -78,7 +77,7 @@ export function SortBar({ sort, period, onSortChange, onPeriodChange }: SortBarP
               </button>
             );
           })}
-        </div>
+        </>
       ) : null}
     </div>
   );

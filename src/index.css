@@ -7,8 +7,8 @@
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #050f0c;
-  color: #f5faf7;
+  background: #07070f;
+  color: #f0f0ff;
 }
 
 * {
@@ -28,7 +28,7 @@ body {
      mobile (iOS/Android) and causes repaints on every scroll frame.
      The decorative gradients are now rendered via a fixed pseudo-element on
      #root so they stay visually "fixed" without the performance cost. */
-  background: #050f0c;
+  background: #07070f;
 }
 
 #root::before {
@@ -38,14 +38,14 @@ body {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(1200px 700px at 8% -10%, rgba(0, 255, 224, 0.07), transparent 60%),
-    radial-gradient(800px 600px at 100% 15%, rgba(34, 211, 238, 0.06), transparent 60%),
-    radial-gradient(900px 600px at 110% 10%, rgba(40, 88, 66, 0.55), transparent 65%),
-    linear-gradient(180deg, #0c221a 0%, #050f0c 100%);
+    radial-gradient(900px 600px at 0% 0%,    rgba(99, 102, 241, 0.08), transparent 60%),
+    radial-gradient(700px 700px at 100% 5%,  rgba(139, 92, 246, 0.06), transparent 55%),
+    radial-gradient(1000px 500px at 50% 100%,rgba(56, 189, 248, 0.05), transparent 60%),
+    linear-gradient(180deg, #0d0d1a 0%, #07070f 100%);
 }
 
 #root {
-  box-shadow: inset 0 0 220px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 220px rgba(0, 0, 0, 0.4);
 }
 
 button,
@@ -65,28 +65,32 @@ button {
 
 @layer components {
   .glass {
-    @apply border border-white/10 bg-white/5 backdrop-blur-xl;
+    @apply border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl;
   }
   .glass-strong {
-    @apply border border-white/15 bg-white/10 backdrop-blur-2xl;
+    @apply border border-white/[0.12] bg-white/[0.08] backdrop-blur-2xl;
   }
   .glass-dark {
-    @apply border border-white/10 bg-black/40 backdrop-blur-xl;
+    @apply border border-white/[0.08] bg-black/50 backdrop-blur-xl;
+  }
+  .card {
+    @apply rounded-2xl overflow-hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.04);
   }
   .pill {
     @apply inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-all duration-200;
   }
   .pill-active {
-    @apply bg-accent-400 text-moss-950 font-extrabold shadow-glow-accent-strong;
+    @apply bg-accent-400 text-surface-950 font-extrabold shadow-glow-accent-strong;
   }
   .pill-idle {
-    @apply border border-white/10 bg-white/5 text-moss-100/55 hover:bg-white/10 hover:text-moss-100/85;
+    @apply border border-white/10 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white/85;
   }
   .chip-active {
-    @apply bg-accent-400 text-moss-950 font-extrabold shadow-glow-accent-strong scale-[1.02];
+    @apply bg-accent-400 text-surface-950 font-extrabold shadow-glow-accent-strong scale-[1.02];
   }
   .chip-idle {
-    @apply border border-white/10 bg-white/5 text-moss-100/75 hover:bg-white/10;
+    @apply border border-white/10 bg-white/5 text-white/75 hover:bg-white/10;
   }
 }
 
@@ -103,9 +107,9 @@ button {
   .shimmer-bg {
     background-image: linear-gradient(
       110deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.12) 40%,
-      rgba(255, 255, 255, 0.04) 80%
+      rgba(99, 102, 241, 0.04) 0%,
+      rgba(139, 92, 246, 0.10) 40%,
+      rgba(99, 102, 241, 0.04) 80%
     );
     background-size: 200% 100%;
   }

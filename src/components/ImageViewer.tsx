@@ -245,6 +245,9 @@ export function ImageViewer({
 
   const saved = currentPost ? isSaved(currentPost.id) : false;
 
+  // Determine if the current post has video (to know if VideoControls shows)
+  const currentHasVideo = currentPost?.assets.some((a) => a.kind === "video" && a.url) ?? false;
+
   const uiClass = `transition-opacity duration-300 ${
     ui.visible ? "opacity-100" : "pointer-events-none opacity-0"
   }`;
@@ -279,6 +282,7 @@ export function ImageViewer({
                 isNear={isNear}
                 key={post.id}
                 muted={muted}
+                onToggleMute={toggleMute}
                 onToggleSave={() => handleToggleSave(post)}
                 onToggleVideo={toggleCurrentVideo}
                 onUnmuteIfMuted={() => {
@@ -303,15 +307,24 @@ export function ImageViewer({
         </div>
       </div>
 
+      {/* Close button — top left */}
       <button
         aria-label="Fermer"
-        className={`glass-dark absolute left-3 top-3 z-40 grid h-11 w-11 place-items-center rounded-full ${uiClass}`}
+        className={`glass-dark absolute left-3 top-3 z-40 grid h-10 w-10 place-items-center rounded-full ${uiClass}`}
         onClick={onClose}
         type="button"
       >
-        <X size={20} />
+        <X size={18} />
       </button>
 
+      {/* Counter — top center */}
+      <p
+        className={`pointer-events-none absolute left-1/2 top-3 z-40 -translate-x-1/2 rounded-full glass-dark px-3 py-1 text-[11px] font-semibold tabular-nums text-white/80 ${uiClass}`}
+      >
+        {selectedIndex + 1} / {posts.length}
+      </p>
+
+      {/* Toast */}
       {toast ? (
         <div
           aria-live="polite"
@@ -324,19 +337,14 @@ export function ImageViewer({
         </div>
       ) : null}
 
-      <p
-        className={`pointer-events-none absolute right-3 top-3 z-40 rounded-full bg-black/35 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-moss-100/80 backdrop-blur-md ${uiClass}`}
-      >
-        {selectedIndex + 1} / {posts.length}
-      </p>
-
+      {/* Action column — right side */}
       {currentPost ? (
-        <div className={`absolute bottom-28 right-3 z-40 ${uiClass}`}>
+        <div className={`absolute bottom-36 right-3 z-40 ${uiClass}`}>
           <ActionColumn
             comments={currentPost.numComments}
             muted={muted}
             onComments={handleComments}
-            onMute={toggleMute}
+            onMute={currentHasVideo ? undefined : toggleMute}
             onSave={() => handleToggleSave(currentPost)}
             onShare={handleShare}
             saved={saved}
@@ -345,6 +353,7 @@ export function ImageViewer({
         </div>
       ) : null}
 
+      {/* Post info — bottom */}
       {currentPost ? (
         <div className={`absolute inset-x-0 bottom-0 z-30 ${uiClass}`}>
           <PostInfo
@@ -365,6 +374,7 @@ interface PostSlideProps {
   setVideoRef: (postId: string, assetId: string, el: HTMLVideoElement | null) => void;
   onToggleSave: () => void;
   onToggleVideo: () => boolean;
+  onToggleMute: () => void;
   onUnmuteIfMuted: () => void;
 }
 
@@ -376,6 +386,7 @@ function PostSlide({
   setVideoRef,
   onToggleSave,
   onToggleVideo,
+  onToggleMute,
   onUnmuteIfMuted
 }: PostSlideProps) {
   const hasGallery = post.assets.length > 1;
@@ -430,7 +441,7 @@ function PostSlide({
   }, [assetIndex, flashFeedback, muted, onToggleSave, onToggleVideo, onUnmuteIfMuted, post.assets]);
 
   const currentAsset = post.assets[assetIndex];
-  const showScrub =
+  const showVideoControls =
     isCurrent && currentAsset?.kind === "video" && Boolean(currentAsset.url);
 
   return (
@@ -465,7 +476,7 @@ function PostSlide({
       )}
 
       {hasGallery ? (
-        <div className="pointer-events-none absolute bottom-32 left-0 right-20 flex items-center justify-center gap-1.5">
+        <div className="pointer-events-none absolute bottom-40 left-0 right-0 flex items-center justify-center gap-1.5">
           {post.assets.map((_, index) => (
             <span
               className={`h-1.5 rounded-full transition-all duration-200 ${
@@ -477,8 +488,15 @@ function PostSlide({
         </div>
       ) : null}
 
-      {showScrub && currentAsset ? (
-        <VideoProgressBar assetId={currentAsset.id} postId={post.id} />
+      {/* Video controls bar — above PostInfo */}
+      {showVideoControls && currentAsset ? (
+        <VideoControls
+          assetId={currentAsset.id}
+          muted={muted}
+          onToggleMute={onToggleMute}
+          onTogglePlay={onToggleVideo}
+          postId={post.id}
+        />
       ) : null}
 
       {feedbackIcon ? (
@@ -489,12 +507,12 @@ function PostSlide({
         >
           {feedbackIcon === "heart" ? (
             <Heart
-              className="text-accent-300 drop-shadow-[0_0_25px_rgba(34,211,238,0.85)] animate-heart-pop"
+              className="text-accent-300 drop-shadow-[0_0_25px_rgba(56,189,248,0.85)] animate-heart-pop"
               fill="currentColor"
               size={96}
             />
           ) : (
-            <span className="grid h-20 w-20 place-items-center rounded-full bg-black/55 backdrop-blur-md animate-fade-in">
+            <span className="grid h-20 w-20 place-items-center rounded-full border border-white/20 bg-black/65 animate-scale-in">
               {feedbackIcon === "pause" ? (
                 <Pause fill="currentColor" size={36} />
               ) : (
@@ -575,12 +593,12 @@ function AssetView({
       <div className="flex h-full w-full shrink-0 grow-0 basis-full items-center justify-center px-6">
         <div className="glass flex max-w-[300px] flex-col items-center gap-3 rounded-3xl p-5 text-center">
           <p className="text-sm font-semibold">Vidéo Redgifs indisponible</p>
-          <p className="text-xs text-moss-100/65">
+          <p className="text-xs text-white/55">
             Redgifs n'a pas fourni de source lisible pour cette vidéo.
           </p>
           {asset.externalUrl ? (
             <a
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent-400 px-4 py-2 text-sm font-bold text-moss-950 shadow-glow-accent"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent-400 px-4 py-2 text-sm font-bold text-surface-950 shadow-glow-accent"
               href={asset.externalUrl}
               rel="noreferrer"
               target="_blank"
@@ -655,7 +673,7 @@ interface ActionColumnProps {
   onSave: () => void;
   onShare: () => void;
   onComments: () => void;
-  onMute: () => void;
+  onMute?: () => void;
 }
 
 function ActionColumn({
@@ -669,7 +687,7 @@ function ActionColumn({
   onMute
 }: ActionColumnProps) {
   return (
-    <div className="flex flex-col items-center gap-2.5">
+    <div className="flex flex-col items-center gap-2">
       <ActionButton
         active={saved}
         icon={<Bookmark fill={saved ? "currentColor" : "none"} size={18} />}
@@ -683,12 +701,14 @@ function ActionColumn({
         onClick={onComments}
       />
       <ActionButton icon={<Share2 size={18} />} label="Partager" onClick={onShare} />
-      <ActionButton
-        icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        label={muted ? "Muet" : "Son"}
-        onClick={onMute}
-      />
-      <div className="mt-0.5 flex flex-col items-center gap-0.5 rounded-full bg-black/35 px-2 py-1 text-[10px] font-bold tabular-nums backdrop-blur-md">
+      {onMute ? (
+        <ActionButton
+          icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          label={muted ? "Muet" : "Son"}
+          onClick={onMute}
+        />
+      ) : null}
+      <div className="mt-0.5 flex flex-col items-center gap-0.5 glass-dark rounded-full px-2 py-1.5 text-[10px] font-bold tabular-nums">
         <ArrowUp size={12} strokeWidth={2.5} />
         <span>{formatCount(score)}</span>
       </div>
@@ -712,8 +732,8 @@ function ActionButton({ active, count, label, icon, onClick }: ActionButtonProps
       type="button"
     >
       <span
-        className={`grid h-10 w-10 place-items-center rounded-full backdrop-blur-md transition-colors ${
-          active ? "bg-accent-400 text-moss-950 shadow-glow-accent-strong" : "bg-black/35 text-white"
+        className={`grid h-11 w-11 place-items-center rounded-full backdrop-blur-md transition-colors ${
+          active ? "bg-accent-400 text-surface-950 shadow-glow-accent-strong" : "bg-black/40 text-white"
         }`}
       >
         {icon}
@@ -733,8 +753,8 @@ interface PostInfoProps {
 function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="pointer-events-none bg-gradient-to-t from-black/80 via-black/30 to-transparent px-3 pb-5 pt-10">
-      <div className="mr-20 max-w-full">
+    <div className="pointer-events-none bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pb-5 pt-16">
+      <div className="mr-16 max-w-full">
         {onNavigateToSubreddit ? (
           <button
             className="pointer-events-auto mb-2 inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-accent-300 backdrop-blur-sm transition-colors active:bg-white/20"
@@ -751,7 +771,7 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
           </p>
         )}
         <p
-          className={`text-sm font-semibold leading-snug text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+          className={`text-[15px] font-bold leading-snug text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
             expanded ? "" : "line-clamp-2"
           }`}
         >
@@ -771,70 +791,19 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
   );
 }
 
-interface LoadingSlideProps {
-  isLoading: boolean;
-  onRetry: () => void;
-}
-
-function LoadingSlide({ isLoading, onRetry }: LoadingSlideProps) {
-  return (
-    <section className="relative flex h-[100dvh] w-full shrink-0 grow-0 basis-full flex-col items-center justify-center gap-4 bg-black text-center">
-      <span className="grid h-16 w-16 place-items-center rounded-full border border-accent-400/40 bg-white/5 text-accent-300 animate-pulse-glow">
-        <Loader2 className={isLoading ? "animate-spin" : ""} size={28} />
-      </span>
-      <div>
-        <p className="text-base font-semibold tracking-tight text-white">
-          {isLoading ? "Chargement de la suite…" : "Suite à charger"}
-        </p>
-        <p className="mt-1 text-xs text-moss-100/60">
-          {isLoading ? "Une salve de posts arrive." : "Tap pour récupérer la suite manuellement."}
-        </p>
-      </div>
-      {!isLoading ? (
-        <button
-          className="rounded-full bg-accent-400 px-5 py-2 text-sm font-bold text-moss-950 shadow-glow-accent-strong"
-          onClick={onRetry}
-          type="button"
-        >
-          Charger plus
-        </button>
-      ) : null}
-    </section>
-  );
-}
-
-function EndSlide() {
-  return (
-    <section className="relative flex h-[100dvh] w-full shrink-0 grow-0 basis-full flex-col items-center justify-center gap-3 bg-black text-center">
-      <span className="grid h-16 w-16 place-items-center rounded-full border border-white/10 bg-white/5 text-moss-100/70">
-        <Heart size={26} />
-      </span>
-      <div>
-        <p className="text-base font-semibold tracking-tight text-white">Fin du feed</p>
-        <p className="mt-1 max-w-[260px] text-xs text-moss-100/60">
-          Tu as parcouru tous les posts. Reviens à la grille pour changer de tri ou de subreddit.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function formatTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-interface VideoProgressBarProps {
+interface VideoControlsProps {
   postId: string;
   assetId: string;
+  muted: boolean;
+  onToggleMute: () => void;
+  onTogglePlay: () => boolean;
 }
 
-function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
+function VideoControls({ postId, assetId, muted, onToggleMute, onTogglePlay }: VideoControlsProps) {
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const draggingRef = useRef(false);
@@ -847,6 +816,7 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
     videoRef.current = video;
 
     const syncState = () => {
+      setIsPlaying(!video.paused);
       if (Number.isFinite(video.duration) && video.duration > 0) {
         setCurrentTime(video.currentTime);
         setDuration(video.duration);
@@ -864,8 +834,8 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
       }
     };
 
-    const onPlay = () => { rafId = window.requestAnimationFrame(tick); };
-    const onPause = () => { window.cancelAnimationFrame(rafId); syncState(); };
+    const onPlay = () => { setIsPlaying(true); rafId = window.requestAnimationFrame(tick); };
+    const onPause = () => { setIsPlaying(false); window.cancelAnimationFrame(rafId); syncState(); };
     const onSeeked = () => syncState();
     const onDurationChange = () => {
       if (Number.isFinite(video.duration)) setDuration(video.duration);
@@ -909,45 +879,127 @@ function VideoProgressBar({ postId, assetId }: VideoProgressBarProps) {
   );
 
   return (
-    <div className="absolute bottom-28 left-3 right-20 z-40 flex flex-col gap-1.5">
-      {duration > 0 ? (
-        <div className="flex justify-between px-0.5">
-          <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white/90 backdrop-blur-sm">
-            {formatTime(currentTime)}
-          </span>
-          <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white/50 backdrop-blur-sm">
-            {formatTime(duration)}
-          </span>
-        </div>
-      ) : null}
-      <div
-        className="relative h-8 cursor-pointer"
-        onPointerCancel={() => (draggingRef.current = false)}
-        onPointerDown={(event) => {
-          draggingRef.current = true;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          scrubTo(event.clientX);
-        }}
-        onPointerMove={(event) => {
-          if (draggingRef.current) scrubTo(event.clientX);
-        }}
-        onPointerUp={(event) => {
-          draggingRef.current = false;
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }}
-        ref={containerRef}
-      >
-        <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 overflow-hidden rounded-full bg-white/20">
+    <div className="absolute inset-x-0 bottom-0 z-[35] bg-gradient-to-t from-black/70 to-transparent px-3 pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] pt-10">
+      {/* Controls row: play/pause · scrubber · time · mute */}
+      <div className="flex items-center gap-3">
+        {/* Play / Pause */}
+        <button
+          aria-label={isPlaying ? "Pause" : "Lecture"}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 backdrop-blur-md transition-transform active:scale-90"
+          onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
+          type="button"
+        >
+          {isPlaying ? <Pause fill="currentColor" size={16} /> : <Play fill="currentColor" size={16} />}
+        </button>
+
+        {/* Scrubber + time */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {duration > 0 ? (
+            <div className="flex justify-between">
+              <span className="text-[10px] font-semibold tabular-nums text-white/80">
+                {formatTime(currentTime)}
+              </span>
+              <span className="text-[10px] font-semibold tabular-nums text-white/40">
+                {formatTime(duration)}
+              </span>
+            </div>
+          ) : null}
           <div
-            className="h-full rounded-full bg-accent-400 shadow-glow-accent"
-            style={{ width: `${progress}%` }}
-          />
+            className="relative h-11 cursor-pointer"
+            onPointerCancel={() => (draggingRef.current = false)}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              draggingRef.current = true;
+              event.currentTarget.setPointerCapture(event.pointerId);
+              scrubTo(event.clientX);
+            }}
+            onPointerMove={(event) => {
+              if (draggingRef.current) scrubTo(event.clientX);
+            }}
+            onPointerUp={(event) => {
+              draggingRef.current = false;
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }}
+            ref={containerRef}
+          >
+            <div className="absolute inset-x-0 top-1/2 h-[5px] -translate-y-1/2 overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-accent-400 shadow-glow-accent"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div
+              className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg"
+              style={{ left: `${progress}%` }}
+            />
+          </div>
         </div>
-        <div
-          className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg"
-          style={{ left: `${progress}%` }}
-        />
+
+        {/* Mute */}
+        <button
+          aria-label={muted ? "Activer le son" : "Couper le son"}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 backdrop-blur-md transition-transform active:scale-90"
+          onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
+          type="button"
+        >
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
       </div>
     </div>
   );
+}
+
+interface LoadingSlideProps {
+  isLoading: boolean;
+  onRetry: () => void;
+}
+
+function LoadingSlide({ isLoading, onRetry }: LoadingSlideProps) {
+  return (
+    <section className="relative flex h-[100dvh] w-full shrink-0 grow-0 basis-full flex-col items-center justify-center gap-4 bg-black text-center">
+      <span className="grid h-16 w-16 place-items-center rounded-full border border-accent-400/40 bg-white/5 text-accent-300 animate-pulse-glow">
+        <Loader2 className={isLoading ? "animate-spin" : ""} size={28} />
+      </span>
+      <div>
+        <p className="text-base font-semibold tracking-tight text-white">
+          {isLoading ? "Chargement de la suite…" : "Suite à charger"}
+        </p>
+        <p className="mt-1 text-xs text-white/50">
+          {isLoading ? "Une salve de posts arrive." : "Tap pour récupérer la suite manuellement."}
+        </p>
+      </div>
+      {!isLoading ? (
+        <button
+          className="rounded-full bg-accent-400 px-5 py-2 text-sm font-bold text-surface-950 shadow-glow-accent-strong"
+          onClick={onRetry}
+          type="button"
+        >
+          Charger plus
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+function EndSlide() {
+  return (
+    <section className="relative flex h-[100dvh] w-full shrink-0 grow-0 basis-full flex-col items-center justify-center gap-3 bg-black text-center">
+      <span className="grid h-16 w-16 place-items-center rounded-full border border-white/10 bg-white/5 text-white/60">
+        <Heart size={26} />
+      </span>
+      <div>
+        <p className="text-base font-semibold tracking-tight text-white">Fin du feed</p>
+        <p className="mt-1 max-w-[260px] text-xs text-white/50">
+          Tu as parcouru tous les posts. Reviens à la grille pour changer de tri ou de subreddit.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
