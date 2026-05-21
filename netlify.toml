@@ -1,0 +1,20 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[edge_functions]]
+  path = "/reddit"
+  function = "reddit"
+
+[[edge_functions]]
+  path = "/redgifs"
+  function = "redgifs"
+
+[[edge_functions]]
+  path = "/redgifs-media/*"
+  function = "redgifs-media"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

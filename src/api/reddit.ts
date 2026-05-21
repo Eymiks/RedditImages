@@ -123,13 +123,10 @@ async function fetchPublic(url: string): Promise<Response> {
     }
   }
 
-  if (workerUrl) {
-    const proxied = new URL(`${workerUrl}/reddit`);
-    proxied.searchParams.set("url", url);
-    return fetch(proxied);
-  }
-
-  throw new Error("Configure VITE_WORKER_URL pour les appels publics Reddit en production.");
+  const base = workerUrl || window.location.origin;
+  const proxied = new URL(`${base}/reddit`);
+  proxied.searchParams.set("url", url);
+  return fetch(proxied);
 }
 
 async function fetchDirect(url: URL): Promise<Response | null> {

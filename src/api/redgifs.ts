@@ -105,10 +105,8 @@ function rewriteRedgifsMediaUrl(url: string | undefined): string | undefined {
     return `/redgifs-media/${filename}`;
   }
   const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, "");
-  if (workerUrl) {
-    return `${workerUrl}/redgifs-media/${filename}`;
-  }
-  return url;
+  const base = workerUrl || "";
+  return `${base}/redgifs-media/${filename}`;
 }
 
 function fetchWithDevFallback(id: string, signal: AbortSignal): Promise<Response> {
@@ -123,15 +121,13 @@ function fetchWithDevFallback(id: string, signal: AbortSignal): Promise<Response
 
 function buildRedgifsProxyUrl(id: string): string {
   const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, "");
-  if (workerUrl) {
-    const url = new URL(`${workerUrl}/redgifs`);
-    url.searchParams.set("id", id);
-    return url.toString();
-  }
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && !workerUrl) {
     return `/redgifs-public/gifs/${encodeURIComponent(id)}`;
   }
 
-  throw new Error("Configure VITE_WORKER_URL pour resoudre les videos Redgifs en production.");
+  const base = workerUrl || window.location.origin;
+  const url = new URL(`${base}/redgifs`);
+  url.searchParams.set("id", id);
+  return url.toString();
 }

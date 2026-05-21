@@ -7,3 +7,6 @@ vite-dev*.log
 .wrangler
 .playwright-mcp/
 .dev.vars
+
+# Local Netlify folder
+.netlify
