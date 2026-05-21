@@ -81,6 +81,7 @@ export function ImageViewer({
     loop: false
   });
   const videoRefs = useRef<VideoRefMap>(new Map());
+  const viewerRef = useRef<HTMLDivElement | null>(null);
   const currentPost = posts[selectedIndex];
   const ui = useAutoHideUi(3000);
 
@@ -173,6 +174,32 @@ export function ImageViewer({
     []
   );
 
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
+  useEffect(() => {
+    const container = viewerRef.current;
+    if (!container) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (!emblaApi) return;
+      if (e.deltaY > 5) {
+        emblaApi.scrollNext();
+      } else if (e.deltaY < -5) {
+        emblaApi.scrollPrev();
+      }
+    };
+    container.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', onWheel);
+    };
+  }, [emblaApi]);
+
   const setVideoRef = useCallback((postId: string, assetId: string, el: HTMLVideoElement | null) => {
     const key = `${postId}:${assetId}`;
     if (el) videoRefs.current.set(key, el);
@@ -254,6 +281,7 @@ export function ImageViewer({
 
   return (
     <div
+      ref={viewerRef}
       className="fixed inset-0 z-50 bg-black text-white animate-fade-in"
       onPointerDown={ui.kick}
     >
@@ -639,7 +667,7 @@ function ZoomableImage({ src }: { src: string }) {
       <TransformComponent
         contentClass="!h-full !w-full !relative !z-10"
         wrapperClass="!h-full !w-full"
-        wrapperStyle={{ touchAction: zoomed ? "none" : "pan-y" }}
+        wrapperStyle={{ touchAction: "none" }}
       >
         <img
           alt=""
