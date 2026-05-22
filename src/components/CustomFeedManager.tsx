@@ -193,6 +193,7 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
   const [inputFocused, setInputFocused] = useState(false);
   const inputContainerRef = useRef<HTMLDivElement | null>(null);
   const suggListRef = useRef<HTMLUListElement | null>(null);
+  const blurTimerRef = useRef<number | null>(null);
 
   const combined = useMemo(() => {
     const seen = new Set<string>();
@@ -240,7 +241,8 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
 
   useEffect(() => {
     const onPointer = (event: Event) => {
-      if (!inputContainerRef.current?.contains(event.target as Node)) {
+      const path = event.composedPath();
+      if (!path.includes(inputContainerRef.current as EventTarget)) {
         setInputFocused(false);
       }
     };
@@ -291,7 +293,6 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
     );
     setManualInput("");
     setSuggestions([]);
-    setInputFocused(false);
     haptic("light");
   };
 
@@ -349,11 +350,16 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
               className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none ring-accent-400/60 placeholder:text-moss-100/45 focus:ring-2"
               inputMode="search"
               onBlur={() => {
-                // délai pour laisser le clic sur une suggestion se déclencher
-                setTimeout(() => setInputFocused(false), 150);
+                blurTimerRef.current = window.setTimeout(() => setInputFocused(false), 150);
               }}
               onChange={(event) => setManualInput(event.target.value)}
-              onFocus={() => setInputFocused(true)}
+              onFocus={() => {
+                if (blurTimerRef.current !== null) {
+                  clearTimeout(blurTimerRef.current);
+                  blurTimerRef.current = null;
+                }
+                setInputFocused(true);
+              }}
               onKeyDown={handleKeyDown}
               placeholder="ajouter r/…"
               value={manualInput}
