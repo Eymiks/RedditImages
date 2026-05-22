@@ -1,5 +1,6 @@
 import { History, Search, Star, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { fetchSubredditSuggestions, type SubredditSuggestion } from "../api/redditAutocomplete";
 import { normalizeSubreddit } from "../hooks/useFavorites";
 import { haptic } from "../utils/haptics";
@@ -25,7 +26,9 @@ export function SubredditInput({
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<SubredditSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
 
   useEffect(() => {
     setDraft(value);
@@ -56,6 +59,16 @@ export function SubredditInput({
   }, [draft]);
 
   useEffect(() => {
+    setActiveIndex(-1);
+  }, [suggestions]);
+
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return;
+    const el = listRef.current.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  useEffect(() => {
     const onPointer = (event: Event) => {
       if (!containerRef.current?.contains(event.target as Node)) {
         setFocused(false);
@@ -77,7 +90,24 @@ export function SubredditInput({
     setFocused(false);
   };
 
-  const showDropdown = focused && (suggestions.length > 0 || (draft.trim().length < 2 && recent.length > 0));
+  const trimmedDraft = draft.trim();
+  const showSuggestions = focused && suggestions.length > 0;
+  const showRecent = focused && trimmedDraft.length < 2 && recent.length > 0;
+  const showDropdown = showSuggestions || showRecent || (focused && loading && trimmedDraft.length >= 2);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((prev) => Math.max(prev - 1, -1));
+    } else if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      submit(suggestions[activeIndex].name);
+    }
+  };
 
   return (
     <div ref={containerRef} className="relative">
@@ -85,7 +115,11 @@ export function SubredditInput({
         className="flex items-center gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          submit(draft);
+          if (activeIndex >= 0 && suggestions[activeIndex]) {
+            submit(suggestions[activeIndex].name);
+          } else {
+            submit(draft);
+          }
         }}
       >
         <label className="relative min-w-0 flex-1">
@@ -96,6 +130,7 @@ export function SubredditInput({
             inputMode="search"
             onChange={(event) => setDraft(event.target.value)}
             onFocus={() => setFocused(true)}
+            onKeyDown={handleKeyDown}
             placeholder="Subreddit"
             value={draft}
           />
@@ -132,12 +167,15 @@ export function SubredditInput({
 
       {showDropdown ? (
         <div className="glass-strong absolute left-0 right-0 top-full z-30 mt-2 max-h-80 overflow-y-auto rounded-2xl p-2 shadow-glow-accent animate-fade-in">
-          {suggestions.length > 0 ? (
-            <ul className="space-y-1">
-              {suggestions.map((suggestion) => (
+          {showSuggestions ? (
+            <ul ref={listRef} className="space-y-1">
+              {suggestions.map((suggestion, index) => (
                 <li key={suggestion.name}>
                   <button
-                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/10"
+                    data-index={index}
+                    className={`flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors ${
+                      index === activeIndex ? "bg-accent-400/15" : "hover:bg-white/10"
+                    }`}
                     onClick={() => submit(suggestion.name)}
                     type="button"
                   >
@@ -145,7 +183,9 @@ export function SubredditInput({
                       {suggestion.name.slice(0, 2).toUpperCase()}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white">r/{suggestion.name}</p>
+                      <p className="truncate text-sm font-semibold text-white">
+                        r/{highlightMatch(suggestion.name, trimmedDraft)}
+                      </p>
                       <p className="truncate text-xs text-white/55">
                         {formatSubscribers(suggestion.subscribers)} membres
                       </p>
@@ -157,7 +197,7 @@ export function SubredditInput({
                 </li>
               ))}
             </ul>
-          ) : draft.trim().length < 2 && recent.length > 0 ? (
+          ) : showRecent ? (
             <div>
               <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/45">
                 <History size={14} />
@@ -178,7 +218,7 @@ export function SubredditInput({
               </ul>
             </div>
           ) : null}
-          {loading ? (
+          {loading && trimmedDraft.length >= 2 && suggestions.length === 0 ? (
             <p className="px-2 py-2 text-xs text-white/45">Recherche…</p>
           ) : null}
         </div>
@@ -191,4 +231,20 @@ function formatSubscribers(count: number): string {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`;
   return String(count);
+}
+
+function highlightMatch(text: string, query: string): ReactNode {
+  const lower = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const index = lower.indexOf(lowerQuery);
+  if (index === -1) return text;
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark className="bg-transparent font-bold text-accent-300">
+        {text.slice(index, index + query.length)}
+      </mark>
+      {text.slice(index + query.length)}
+    </>
+  );
 }
