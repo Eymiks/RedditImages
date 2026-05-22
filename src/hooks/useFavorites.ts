@@ -25,6 +25,19 @@ export function useFavorites() {
     setFavorites((current) => current.filter((favorite) => favorite !== normalized));
   }, []);
 
+  const replace = useCallback((nextFavorites: string[]) => {
+    const seen = new Set<string>();
+    const normalized = nextFavorites
+      .map((item) => normalizeSubreddit(item))
+      .filter((item) => {
+        if (!item || seen.has(item)) return false;
+        seen.add(item);
+        return true;
+      })
+      .sort();
+    setFavorites(normalized);
+  }, []);
+
   const toggleFavorite = useCallback(
     (name: string) => {
       const normalized = normalizeSubreddit(name);
@@ -48,6 +61,7 @@ export function useFavorites() {
     favoriteSet,
     addFavorite,
     removeFavorite,
+    replace,
     toggleFavorite,
     isFavorite: useCallback((name: string) => favoriteSet.has(normalizeSubreddit(name)), [favoriteSet])
   };
