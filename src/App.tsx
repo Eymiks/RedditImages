@@ -373,6 +373,7 @@ export default function App() {
 
       {showSearchModal ? (
         <SearchModal
+          favorites={favorites}
           isFavorite={isFavorite(subreddit)}
           onClose={handleCloseSearch}
           onSubmit={handleSubmitSubreddit}
