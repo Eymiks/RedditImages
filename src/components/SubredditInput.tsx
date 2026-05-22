@@ -250,15 +250,16 @@ export function SubredditInput({
                       onClick={() => submit(suggestion.name)}
                       type="button"
                     >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-400/15 text-xs font-bold text-accent-300">
-                        {suggestion.name.slice(0, 2).toUpperCase()}
-                      </span>
+                      <SubredditIcon iconUrl={suggestion.iconUrl} name={suggestion.name} />
                       <span className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-white">
                           r/{highlightMatch(suggestion.name, trimmedDraft)}
                         </p>
                         <p className="truncate text-xs text-white/55">
                           {formatSubscribers(suggestion.subscribers)} membres
+                          {suggestion.activeUsers > 0
+                            ? ` · ${formatSubscribers(suggestion.activeUsers)} en ligne`
+                            : null}
                         </p>
                       </span>
                       {suggestion.nsfw ? (
@@ -279,6 +280,25 @@ export function SubredditInput({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function SubredditIcon({ iconUrl, name }: { iconUrl: string | null; name: string }) {
+  const [imgError, setImgError] = useState(false);
+  if (iconUrl && !imgError) {
+    return (
+      <img
+        alt=""
+        className="h-9 w-9 shrink-0 rounded-full object-cover"
+        onError={() => setImgError(true)}
+        src={iconUrl}
+      />
+    );
+  }
+  return (
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-400/15 text-xs font-bold text-accent-300">
+      {name.slice(0, 2).toUpperCase()}
+    </span>
   );
 }
 

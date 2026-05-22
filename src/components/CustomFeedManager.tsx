@@ -385,15 +385,16 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
                         }}
                         type="button"
                       >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent-400/15 text-[11px] font-bold text-accent-300">
-                          {suggestion.name.slice(0, 2).toUpperCase()}
-                        </span>
+                        <SubredditIcon iconUrl={suggestion.iconUrl} name={suggestion.name} />
                         <span className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-white">
                             r/{highlightMatch(suggestion.name, trimmedInput)}
                           </p>
                           <p className="truncate text-xs text-white/50">
                             {formatSubscribers(suggestion.subscribers)} membres
+                            {suggestion.activeUsers > 0
+                              ? ` · ${formatSubscribers(suggestion.activeUsers)} en ligne`
+                              : null}
                           </p>
                         </span>
                         {isSelected(suggestion.name) ? (
@@ -466,6 +467,25 @@ function formatSubscribers(count: number): string {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`;
   return String(count);
+}
+
+function SubredditIcon({ iconUrl, name }: { iconUrl: string | null; name: string }) {
+  const [imgError, setImgError] = useState(false);
+  if (iconUrl && !imgError) {
+    return (
+      <img
+        alt=""
+        className="h-8 w-8 shrink-0 rounded-full object-cover"
+        onError={() => setImgError(true)}
+        src={iconUrl}
+      />
+    );
+  }
+  return (
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent-400/15 text-[11px] font-bold text-accent-300">
+      {name.slice(0, 2).toUpperCase()}
+    </span>
+  );
 }
 
 function highlightMatch(text: string, query: string): ReactNode {

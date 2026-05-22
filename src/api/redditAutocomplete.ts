@@ -3,6 +3,7 @@ const PUBLIC_BASE = "https://old.reddit.com";
 export interface SubredditSuggestion {
   name: string;
   subscribers: number;
+  activeUsers: number;
   iconUrl: string | null;
   nsfw: boolean;
 }
@@ -12,6 +13,7 @@ interface RedditListingChild {
   data: {
     display_name?: string;
     subscribers?: number;
+    active_user_count?: number;
     icon_img?: string;
     community_icon?: string;
     over18?: boolean;
@@ -49,11 +51,13 @@ export async function fetchSubredditSuggestions(
       .map((child): SubredditSuggestion | null => {
         const name = (child.data?.display_name ?? "").replace(/^r\//i, "").toLowerCase();
         if (!name) return null;
-        const icon = child.data.icon_img || child.data.community_icon || null;
+        const rawIcon = child.data.icon_img || child.data.community_icon || null;
+        const iconUrl = rawIcon && rawIcon.length > 0 ? rawIcon.split("?")[0] : null;
         return {
           name,
           subscribers: Number(child.data.subscribers) || 0,
-          iconUrl: icon && icon.length > 0 ? icon : null,
+          activeUsers: Number(child.data.active_user_count) || 0,
+          iconUrl,
           nsfw: Boolean(child.data.over18)
         };
       })
