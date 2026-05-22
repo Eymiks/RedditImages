@@ -41,7 +41,7 @@ export async function enrichRedgifsPosts(posts: ImagePost[]): Promise<ImagePost[
   );
   const resolvedById = new Map(resolvedEntries);
 
-  return posts.map((post) => ({
+  const enrichedPosts = posts.map((post) => ({
     ...post,
     assets: post.assets.map((asset) => {
       if (asset.source !== "redgifs" || !asset.redgifsId) {
@@ -61,6 +61,12 @@ export async function enrichRedgifsPosts(posts: ImagePost[]): Promise<ImagePost[
       };
     })
   }));
+
+  return enrichedPosts.filter((post) => {
+    const redgifsAssets = post.assets.filter((a) => a.source === "redgifs");
+    if (redgifsAssets.length === 0) return true;
+    return redgifsAssets.some((a) => a.url !== "");
+  });
 }
 
 async function resolveRedgifsMedia(id: string): Promise<ResolvedRedgifsMedia> {
