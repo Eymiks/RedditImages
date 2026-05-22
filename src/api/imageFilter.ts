@@ -42,9 +42,8 @@ export function decodeRedditUrl(url: string): string {
 }
 
 function extractAssets(post: RedditPostData): ImageAsset[] {
-  if (isRedditVideo(post)) {
-    return [];
-  }
+  const vredditAssets = extractRedditVideoAsset(post);
+  if (vredditAssets.length > 0) return vredditAssets;
 
   const postUrl = post.url_overridden_by_dest ?? post.url;
   const redgifsId = postUrl ? parseRedgifsId(postUrl) : null;
@@ -88,8 +87,28 @@ function extractAssets(post: RedditPostData): ImageAsset[] {
   return [];
 }
 
-function isRedditVideo(post: RedditPostData): boolean {
-  return Boolean(post.is_video || post.url?.includes("v.redd.it") || post.domain === "v.redd.it");
+function extractRedditVideoAsset(post: RedditPostData): ImageAsset[] {
+  if (!post.is_video && !post.url?.includes("v.redd.it") && post.domain !== "v.redd.it") {
+    return [];
+  }
+  const video = post.secure_media?.reddit_video ?? post.media?.reddit_video;
+  const hlsUrl = video?.hls_url;
+  const fallbackUrl = video?.fallback_url;
+  const url = hlsUrl ?? fallbackUrl;
+  if (!url) return [];
+
+  const previewUrl = pickPostPreview(post) ?? (fallbackUrl ? decodeRedditUrl(fallbackUrl) : "");
+  return [
+    {
+      id: `${post.id}-vreddit`,
+      url: decodeRedditUrl(url),
+      previewUrl,
+      kind: "video",
+      source: "vreddit",
+      hlsUrl: hlsUrl ? decodeRedditUrl(hlsUrl) : undefined,
+      externalUrl: `https://www.reddit.com${post.permalink}`
+    }
+  ];
 }
 
 function pickPostPreview(post: RedditPostData): string | null {

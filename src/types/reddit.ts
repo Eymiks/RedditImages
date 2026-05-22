@@ -8,7 +8,7 @@ export type FeedTarget =
   | { kind: "multi"; id: string; name: string; subreddits: string[] };
 
 export type MediaKind = "image" | "video";
-export type MediaSource = "reddit" | "imgur" | "redgifs";
+export type MediaSource = "reddit" | "imgur" | "redgifs" | "vreddit";
 
 export interface ImageAsset {
   id: string;
@@ -18,6 +18,7 @@ export interface ImageAsset {
   source?: MediaSource;
   externalUrl?: string;
   redgifsId?: string;
+  hlsUrl?: string;
 }
 
 export interface ImagePost {
@@ -61,6 +62,21 @@ export interface RedditPostData {
   post_hint?: string;
   is_gallery?: boolean;
   is_video?: boolean;
+  media?: {
+    reddit_video?: {
+      hls_url?: string;
+      fallback_url?: string;
+      width?: number;
+      height?: number;
+      duration?: number;
+    };
+  };
+  secure_media?: {
+    reddit_video?: {
+      hls_url?: string;
+      fallback_url?: string;
+    };
+  };
   preview?: {
     images?: Array<{
       source?: { url?: string; width?: number; height?: number };

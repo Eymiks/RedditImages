@@ -39,6 +39,12 @@ export function ImageGrid({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const lastTapRef = useRef<{ id: string; time: number } | null>(null);
   const [heartFor, setHeartFor] = useState<string | null>(null);
+  const [failedPostIds, setFailedPostIds] = useState<Set<string>>(new Set());
+
+  const visiblePosts = useMemo(
+    () => posts.filter((p) => !failedPostIds.has(p.id)),
+    [posts, failedPostIds]
+  );
 
   // Keep a stable ref so the IntersectionObserver callback can always access the
   // latest onLoadMore without needing to be recreated when it changes.
@@ -88,9 +94,9 @@ export function ImageGrid({
   // heartFor changes and only one PostCard needs updating).
   // Must be declared before any early returns to obey the Rules of Hooks.
   const [leftPosts, rightPosts] = useMemo(() => [
-    posts.filter((_, i) => i % 2 === 0),
-    posts.filter((_, i) => i % 2 === 1)
-  ], [posts]);
+    visiblePosts.filter((_, i) => i % 2 === 0),
+    visiblePosts.filter((_, i) => i % 2 === 1)
+  ], [visiblePosts]);
 
   if (isInitialLoading) {
     return (
@@ -153,28 +159,30 @@ export function ImageGrid({
     <section className="space-y-4">
       <div className="flex items-start gap-2">
         <div className="flex flex-1 flex-col gap-2">
-          {leftPosts.map((post, colIdx) => (
+          {leftPosts.map((post) => (
             <PostCard
               autoplay={autoplay}
-              index={colIdx * 2}
+              index={posts.findIndex((p) => p.id === post.id)}
               isSaved={isSaved(post.id)}
               key={post.id}
               onSubredditTap={onSubredditTap}
               onTap={handleTap}
+              onUnavailable={() => setFailedPostIds((prev) => new Set(prev).add(post.id))}
               post={post}
               showHeart={heartFor === post.id}
             />
           ))}
         </div>
         <div className="flex flex-1 flex-col gap-2">
-          {rightPosts.map((post, colIdx) => (
+          {rightPosts.map((post) => (
             <PostCard
               autoplay={autoplay}
-              index={colIdx * 2 + 1}
+              index={posts.findIndex((p) => p.id === post.id)}
               isSaved={isSaved(post.id)}
               key={post.id}
               onSubredditTap={onSubredditTap}
               onTap={handleTap}
+              onUnavailable={() => setFailedPostIds((prev) => new Set(prev).add(post.id))}
               post={post}
               showHeart={heartFor === post.id}
             />
@@ -225,15 +233,17 @@ interface PostCardProps {
   autoplay: boolean;
   showHeart: boolean;
   onTap: (index: number, post: ImagePost) => void;
+  onUnavailable: () => void;
   onSubredditTap?: (subreddit: string) => void;
 }
 
 // memo prevents re-rendering every PostCard when an unrelated card shows a heart
 // animation or when the parent ImageGrid receives new props with identical values.
-const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHeart, onTap, onSubredditTap }: PostCardProps) {
+const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHeart, onTap, onUnavailable, onSubredditTap }: PostCardProps) {
   const asset = post.assets[0];
   const isVideo = asset?.kind === "video";
   const isRedgifs = asset?.source === "redgifs";
+  const isVreddit = asset?.source === "vreddit";
 
   return (
     <button
@@ -243,7 +253,7 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
       type="button"
     >
       {/* Media content */}
-      {isRedgifs ? (
+      {isRedgifs || isVreddit ? (
         <div className="relative aspect-[3/4] bg-black/40">
           {asset.previewUrl ? (
             <img
@@ -266,6 +276,7 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
             className="h-full w-full object-cover"
             loop
             muted
+            onError={asset.source === "imgur" ? onUnavailable : undefined}
             playsInline
             preload="none"
             poster={asset.previewUrl}
@@ -293,6 +304,7 @@ const PostCard = memo(function PostCard({ post, index, isSaved, autoplay, showHe
           alt={post.title}
           className="block w-full transition duration-500 group-hover:scale-105"
           loading="lazy"
+          onError={asset.source === "imgur" ? onUnavailable : undefined}
           src={asset.previewUrl ?? asset.url}
         />
       ) : (

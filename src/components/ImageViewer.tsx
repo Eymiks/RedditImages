@@ -1,3 +1,4 @@
+import Hls from "hls.js";
 import useEmblaCarousel from "embla-carousel-react";
 import {
   ArrowUp,
@@ -626,20 +627,79 @@ function AssetView({
   setVideoRef
 }: AssetViewProps) {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const [hlsError, setHlsError] = useState(false);
 
   // When a slide is no longer near or active, explicitly free its video buffer
   useEffect(() => {
     const video = localVideoRef.current;
     if (!video || isNear || isActive) return;
     video.pause();
-    video.load();
-  }, [isNear, isActive]);
+    // hls.js manages its own buffer — calling video.load() would detach it
+    if (asset?.source !== "vreddit") video.load();
+  }, [isNear, isActive, asset?.source]);
+
+  // Create HLS instance when a vreddit asset is mounted (or URL changes)
+  useEffect(() => {
+    const video = localVideoRef.current;
+    if (!asset || asset.source !== "vreddit" || !video) return;
+    setHlsError(false);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({ autoStartLoad: false });
+      hlsRef.current = hls;
+      hls.loadSource(asset.url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) setHlsError(true);
+      });
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Safari: HLS natif
+      video.src = asset.url;
+    }
+  }, [asset?.url, asset?.source]);
+
+  // Start/stop HLS loading based on slide proximity
+  useEffect(() => {
+    const hls = hlsRef.current;
+    if (!hls) return;
+    if (isActive || isNear) hls.startLoad();
+    else hls.stopLoad();
+  }, [isActive, isNear]);
 
   if (!asset) {
     return <div className="flex h-full w-full shrink-0 grow-0 basis-full bg-black" />;
   }
 
-  if (asset.kind === "video" && asset.url) {
+  if (asset.source === "vreddit" && hlsError) {
+    return (
+      <div className="flex h-full w-full shrink-0 grow-0 basis-full items-center justify-center px-6">
+        <div className="glass flex max-w-[300px] flex-col items-center gap-3 rounded-3xl p-5 text-center">
+          <p className="text-sm font-semibold">Vidéo Reddit indisponible</p>
+          <p className="text-xs text-white/55">
+            La vidéo n'est plus accessible ou a été supprimée.
+          </p>
+          {asset.externalUrl ? (
+            <a
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent-400 px-4 py-2 text-sm font-bold text-surface-950 shadow-glow-accent"
+              href={asset.externalUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Ouvrir sur Reddit
+              <ExternalLink size={15} />
+            </a>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (asset.kind === "video" && (asset.url || asset.source === "vreddit")) {
     return (
       <div
         className="relative flex h-full w-full shrink-0 grow-0 basis-full items-center justify-center"
@@ -662,7 +722,7 @@ function AssetView({
             localVideoRef.current = el;
             setVideoRef(postId, asset.id, el);
           }}
-          src={isNear || isActive ? asset.url : undefined}
+          src={asset.source === "vreddit" ? undefined : (isNear || isActive ? asset.url : undefined)}
         />
       </div>
     );
