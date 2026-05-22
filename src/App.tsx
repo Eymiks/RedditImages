@@ -20,9 +20,20 @@ import { useRecent } from "./hooks/useRecent";
 import { useSavedPosts } from "./hooks/useSavedPosts";
 import { useSettings } from "./hooks/useSettings";
 import type { FeedTab, FeedTarget } from "./types/reddit";
+import {
+  createAppConfigExport,
+  createAppConfigFilename,
+  parseAppConfigText,
+  stringifyAppConfig
+} from "./utils/appConfigTransfer";
 
 export default function App() {
-  const { settings, toggle: toggleSetting, set: setSetting } = useSettings();
+  const {
+    settings,
+    toggle: toggleSetting,
+    set: setSetting,
+    replace: replaceSettings
+  } = useSettings();
   const [activeTab, setActiveTab] = useState<FeedTab>(settings.defaultTab);
   const [subreddit, setSubreddit] = useState("pics");
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(null);
@@ -35,7 +46,7 @@ export default function App() {
   const [tabKey, setTabKey] = useState(0);
   const skipNextPopState = useRef(false);
 
-  const { favorites, isFavorite, toggleFavorite } = useFavorites();
+  const { favorites, isFavorite, replace: replaceFavorites, toggleFavorite } = useFavorites();
   const customFeeds = useCustomFeeds();
   const { recent, push: pushRecent } = useRecent();
   const savedPosts = useSavedPosts();
@@ -157,6 +168,40 @@ export default function App() {
       history.back();
     }
   }, []);
+
+  const handleExportConfig = useCallback(() => {
+    const config = createAppConfigExport({
+      settings,
+      favorites,
+      customFeeds: customFeeds.feeds
+    });
+    const blob = new Blob([stringifyAppConfig(config)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = createAppConfigFilename();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [customFeeds.feeds, favorites, settings]);
+
+  const handleImportConfig = useCallback(
+    async (file: File) => {
+      const imported = parseAppConfigText(await file.text());
+      replaceSettings(imported.settings);
+      replaceFavorites(imported.favorites);
+      customFeeds.replace(imported.customFeeds);
+      setActiveTab(imported.settings.defaultTab);
+      setSelectedFeedId((current) =>
+        current && imported.customFeeds.some((feedToImport) => feedToImport.id === current)
+          ? current
+          : null
+      );
+      setTabKey((key) => key + 1);
+    },
+    [customFeeds, replaceFavorites, replaceSettings]
+  );
 
   useEffect(() => {
     const handler = () => {
@@ -318,6 +363,8 @@ export default function App() {
         <SettingsPopover
           onClearCache={clearListingCache}
           onClose={handleCloseSettings}
+          onExportConfig={handleExportConfig}
+          onImportConfig={handleImportConfig}
           onSet={setSetting}
           onToggle={toggleSetting}
           settings={settings}

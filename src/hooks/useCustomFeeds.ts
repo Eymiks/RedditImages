@@ -91,9 +91,27 @@ export function useCustomFeeds() {
     setFeeds((current) => current.filter((feed) => feed.id !== id));
   }, []);
 
+  const replace = useCallback((nextFeeds: CustomFeed[]) => {
+    setFeeds(
+      nextFeeds
+        .map((feed): CustomFeed | null => {
+          const cleanName = feed.name.trim().slice(0, 40);
+          const cleanSubs = sanitizeSubs(feed.subreddits);
+          if (!feed.id || !cleanName || cleanSubs.length === 0) return null;
+          return {
+            id: feed.id,
+            name: cleanName,
+            subreddits: cleanSubs,
+            createdAt: Number(feed.createdAt) || Date.now()
+          };
+        })
+        .filter((feed): feed is CustomFeed => feed !== null)
+    );
+  }, []);
+
   const get = useCallback((id: string) => feeds.find((feed) => feed.id === id) ?? null, [feeds]);
 
   const byId = useMemo(() => new Map(feeds.map((feed) => [feed.id, feed])), [feeds]);
 
-  return { feeds, create, update, remove, get, byId };
+  return { feeds, create, update, remove, replace, get, byId };
 }

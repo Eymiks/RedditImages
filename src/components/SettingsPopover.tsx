@@ -1,5 +1,5 @@
-import { Bookmark, Eye, EyeOff, FolderHeart, Grid2X2, Layers, PlayCircle, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bookmark, Download, Eye, EyeOff, FolderHeart, Grid2X2, Layers, PlayCircle, Trash2, Upload, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { Settings } from "../hooks/useSettings";
 import type { FeedTab } from "../types/reddit";
 import { haptic } from "../utils/haptics";
@@ -9,6 +9,8 @@ interface SettingsPopoverProps {
   onToggle: (key: keyof Settings) => void;
   onSet: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   onClearCache: () => number;
+  onExportConfig: () => void;
+  onImportConfig: (file: File) => Promise<void>;
   onClose: () => void;
 }
 
@@ -19,8 +21,19 @@ const TAB_OPTIONS: { id: FeedTab; label: string; icon: React.ReactNode }[] = [
   { id: "saved", label: "Saved", icon: <Bookmark size={14} /> },
 ];
 
-export function SettingsPopover({ settings, onToggle, onSet, onClearCache, onClose }: SettingsPopoverProps) {
+export function SettingsPopover({
+  settings,
+  onToggle,
+  onSet,
+  onClearCache,
+  onExportConfig,
+  onImportConfig,
+  onClose
+}: SettingsPopoverProps) {
   const [cacheCleared, setCacheCleared] = useState(false);
+  const [configStatus, setConfigStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -35,6 +48,37 @@ export function SettingsPopover({ settings, onToggle, onSet, onClearCache, onClo
     onClearCache();
     setCacheCleared(true);
     window.setTimeout(() => setCacheCleared(false), 2500);
+  };
+
+  const handleExportConfig = () => {
+    haptic("light");
+    onExportConfig();
+    setConfigStatus({ type: "success", text: "Configuration exportée" });
+  };
+
+  const handleImportClick = () => {
+    haptic("light");
+    fileInputRef.current?.click();
+  };
+
+  const handleImportChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setIsImporting(true);
+    setConfigStatus(null);
+    try {
+      await onImportConfig(file);
+      setConfigStatus({ type: "success", text: "Configuration importée" });
+    } catch (error) {
+      setConfigStatus({
+        type: "error",
+        text: error instanceof Error ? error.message : "Import impossible"
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   return (
@@ -104,6 +148,42 @@ export function SettingsPopover({ settings, onToggle, onSet, onClearCache, onClo
               );
             })}
           </div>
+        </div>
+
+        <div className="mt-1 border-t border-white/8 px-2 pt-3">
+          <p className="mb-1 text-sm font-semibold text-white">Configuration</p>
+          <p className="mb-3 text-xs text-moss-100/65">Réglages, favoris et mixes personnalisés</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/5 px-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              onClick={handleExportConfig}
+              type="button"
+            >
+              <Download size={17} />
+              Exporter
+            </button>
+            <button
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/5 px-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-60"
+              disabled={isImporting}
+              onClick={handleImportClick}
+              type="button"
+            >
+              <Upload size={17} />
+              {isImporting ? "Import..." : "Importer"}
+            </button>
+          </div>
+          <input
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportChange}
+            ref={fileInputRef}
+            type="file"
+          />
+          {configStatus ? (
+            <p className={`mt-2 text-xs ${configStatus.type === "error" ? "text-red-300" : "text-accent-300"}`}>
+              {configStatus.text}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-1 border-t border-white/8 pt-3">

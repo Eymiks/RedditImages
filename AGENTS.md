@@ -55,6 +55,7 @@ This feed is specifically useful because it reliably exposes NSFW video posts fo
 ## Repo Hygiene
 
 - Do not revert or delete unrelated untracked files or user changes.
+- After completing requested code changes and verification, commit the scoped modifications when the user has not asked to leave them unstaged.
 - Prefer scoped edits over broad refactors.
 - Use `rg`/`rg --files` for code search.
 - Use `apply_patch` for manual file edits.
