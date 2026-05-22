@@ -40,7 +40,7 @@ export function SearchModal({
         className="absolute inset-0 bg-black/70 backdrop-blur-md"
         onClick={onClose}
       />
-      <div className="relative mx-2 mb-3 flex h-[min(78vh,620px)] flex-col rounded-[1.75rem] border border-white/[0.13] bg-surface-900/90 shadow-[0_24px_70px_rgba(0,0,0,0.72)] backdrop-blur-2xl animate-slide-up safe-bottom">
+      <div className="relative mx-2 mb-3 flex min-h-0 flex-1 flex-col rounded-[1.75rem] border border-white/[0.13] bg-surface-900/90 shadow-[0_24px_70px_rgba(0,0,0,0.72)] backdrop-blur-2xl animate-slide-up safe-bottom">
         <div className="flex justify-center pt-3">
           <span className="h-1.5 w-10 rounded-full bg-white/18" aria-hidden />
         </div>
