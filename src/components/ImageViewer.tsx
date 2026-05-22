@@ -367,7 +367,7 @@ export function ImageViewer({
 
       {/* Action column — right side */}
       {currentPost ? (
-        <div className={`absolute bottom-36 right-3 z-40 ${uiClass}`}>
+        <div className={`absolute ${currentHasVideo ? "bottom-44" : "bottom-36"} right-3 z-40 ${uiClass}`}>
           <ActionColumn
             comments={currentPost.numComments}
             muted={muted}
@@ -773,29 +773,28 @@ interface PostInfoProps {
 function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="pointer-events-none bg-gradient-to-t from-black/90 via-black/55 to-transparent px-4 pb-5 pt-28">
-      <div className="mr-14 max-w-full">
-        {onNavigateToSubreddit ? (
-          <button
-            className="pointer-events-auto mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[10px] font-semibold text-accent-300 backdrop-blur-sm transition-colors active:bg-white/15"
-            onClick={() => { haptic("light"); onNavigateToSubreddit(post.subreddit); }}
-            type="button"
-          >
-            r/{post.subreddit}
-            {post.author && post.author !== "unknown" ? (
-              <span className="text-white/35"> · {post.author}</span>
-            ) : null}
-          </button>
-        ) : (
-          <p className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[10px] font-semibold text-accent-300/85 backdrop-blur-sm">
-            r/{post.subreddit}
-            {post.author && post.author !== "unknown" ? (
-              <span className="text-white/35"> · {post.author}</span>
-            ) : null}
-          </p>
-        )}
+    <div className="pointer-events-none bg-gradient-to-t from-black/75 to-transparent px-4 pb-5 pt-14">
+      <div className="mr-14 flex flex-col gap-0.5">
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          {onNavigateToSubreddit ? (
+            <button
+              className="pointer-events-auto text-[11px] font-bold text-accent-300 active:opacity-70"
+              onClick={() => { haptic("light"); onNavigateToSubreddit(post.subreddit); }}
+              type="button"
+            >
+              r/{post.subreddit}
+            </button>
+          ) : (
+            <span className="text-[11px] font-bold text-accent-300/80">r/{post.subreddit}</span>
+          )}
+          {post.author && post.author !== "unknown" ? (
+            <span className="text-[11px] text-white/35 font-medium truncate max-w-[140px]">
+              · {post.author}
+            </span>
+          ) : null}
+        </div>
         <p
-          className={`text-[14px] font-semibold leading-[1.35] text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+          className={`text-[14px] font-semibold leading-[1.35] text-white/95 [text-shadow:0_1px_6px_rgba(0,0,0,0.8)] ${
             expanded ? "" : "line-clamp-2"
           }`}
         >
@@ -803,8 +802,8 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
         </p>
         {post.title.length > 80 ? (
           <button
-            className="pointer-events-auto mt-1 text-[10px] font-medium text-white/35"
-            onClick={() => setExpanded((value) => !value)}
+            className="pointer-events-auto mt-0.5 text-[10px] font-medium text-white/30"
+            onClick={() => setExpanded((v) => !v)}
             type="button"
           >
             {expanded ? "Réduire" : "Voir plus"}
@@ -909,6 +908,7 @@ function VideoControls({ postId, assetId, muted, onToggleMute, onTogglePlay }: V
           aria-label={isPlaying ? "Pause" : "Lecture"}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 transition-transform active:scale-95"
           onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
+          onPointerDown={(e) => e.stopPropagation()}
           type="button"
         >
           {isPlaying ? <Pause fill="currentColor" size={16} /> : <Play fill="currentColor" size={16} />}
@@ -952,6 +952,7 @@ function VideoControls({ postId, assetId, muted, onToggleMute, onTogglePlay }: V
           aria-label={muted ? "Activer le son" : "Couper le son"}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 transition-transform active:scale-95"
           onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
+          onPointerDown={(e) => e.stopPropagation()}
           type="button"
         >
           {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
