@@ -55,8 +55,16 @@ This feed is specifically useful because it reliably exposes NSFW video posts fo
 ## Repo Hygiene
 
 - Do not revert or delete unrelated untracked files or user changes.
-- After completing requested code changes and verification, commit the scoped modifications when the user has not asked to leave them unstaged.
+- After completing requested code changes and verification, commit the scoped modifications and push to GitHub. Do this at the end of every session, even if the user does not explicitly ask.
+- Never commit `.claude/` or any local artifact/screenshot files (`.png`, `.json` temp files, etc.).
 - Prefer scoped edits over broad refactors.
 - Use `rg`/`rg --files` for code search.
-- Use `apply_patch` for manual file edits.
 - This repo may contain generated screenshots and local artifacts; ignore them unless the user explicitly asks about them.
+
+## PWA & Deployment
+
+- The app is a PWA deployed on Netlify. Pushing to `main` triggers an automatic Netlify deploy.
+- The service worker uses `registerType: "autoUpdate"` — new deploys automatically update the app on mobile without requiring the user to clear the cache. Do not revert this to `"prompt"` unless you also add a `useRegisterSW` update UI.
+- `sw.js` is served with `Cache-Control: no-store` (configured in `netlify.toml`) to ensure browsers always fetch the latest service worker.
+- Netlify Edge Functions handle the Reddit and Redgifs proxies — their source lives in `netlify/edge-functions/`. Do not remove or rename them without updating `netlify.toml`.
+- After any change to `vite.config.ts` (workbox, PWA config), run `npm run build` and check that `dist/sw.js` is generated correctly.
