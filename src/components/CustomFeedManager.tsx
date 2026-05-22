@@ -1,5 +1,7 @@
 import { ArrowLeft, Layers, Plus, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { fetchSubredditSuggestions, type SubredditSuggestion } from "../api/redditAutocomplete";
 import type { CustomFeed } from "../hooks/useCustomFeeds";
 import { normalizeSubreddit } from "../hooks/useFavorites";
 import { haptic } from "../utils/haptics";
@@ -185,6 +187,12 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [selected, setSelected] = useState<string[]>(initial?.subreddits ?? []);
   const [manualInput, setManualInput] = useState("");
+  const [suggestions, setSuggestions] = useState<SubredditSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [inputFocused, setInputFocused] = useState(false);
+  const inputContainerRef = useRef<HTMLDivElement | null>(null);
+  const suggListRef = useRef<HTMLUListElement | null>(null);
 
   const combined = useMemo(() => {
     const seen = new Set<string>();
@@ -197,6 +205,52 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
     }
     return all;
   }, [favorites, selected]);
+
+  useEffect(() => {
+    const trimmed = manualInput.trim();
+    if (trimmed.length < 2) {
+      setSuggestions([]);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setLoading(true);
+    const timer = window.setTimeout(async () => {
+      const result = await fetchSubredditSuggestions(trimmed, controller.signal);
+      if (!controller.signal.aborted) {
+        setSuggestions(result);
+        setLoading(false);
+      }
+    }, 200);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [manualInput]);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [suggestions]);
+
+  useEffect(() => {
+    if (activeIndex < 0 || !suggListRef.current) return;
+    const el = suggListRef.current.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  useEffect(() => {
+    const onPointer = (event: Event) => {
+      if (!inputContainerRef.current?.contains(event.target as Node)) {
+        setInputFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("touchstart", onPointer, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("touchstart", onPointer);
+    };
+  }, []);
 
   const isSelected = (sub: string) => selected.includes(sub);
 
@@ -225,7 +279,47 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
       return next;
     });
     setManualInput("");
+    setSuggestions([]);
     haptic("light");
+  };
+
+  const addSuggestion = (suggestionName: string) => {
+    const normalized = normalizeSubreddit(suggestionName);
+    if (!normalized) return;
+    setSelected((current) =>
+      current.includes(normalized) ? current : [...current, normalized]
+    );
+    setManualInput("");
+    setSuggestions([]);
+    setInputFocused(false);
+    haptic("light");
+  };
+
+  const trimmedInput = manualInput.trim();
+  const showDropdown = inputFocused && trimmedInput.length >= 2 && (suggestions.length > 0 || loading);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (suggestions.length > 0) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveIndex((prev) => Math.max(prev - 1, -1));
+        return;
+      }
+      if (event.key === "Enter" && activeIndex >= 0) {
+        event.preventDefault();
+        addSuggestion(suggestions[activeIndex].name);
+        return;
+      }
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addManual();
+    }
   };
 
   const canSave = name.trim().length > 0 && selected.length > 0;
@@ -249,28 +343,77 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-moss-100/55">
           Subreddits ({selected.length})
         </span>
-        <div className="flex gap-2">
-          <input
-            className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none ring-accent-400/60 placeholder:text-moss-100/45 focus:ring-2"
-            inputMode="search"
-            onChange={(event) => setManualInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addManual();
-              }
-            }}
-            placeholder="ajouter r/…"
-            value={manualInput}
-          />
-          <button
-            className="grid h-11 w-11 place-items-center rounded-xl bg-accent-400 text-moss-950 shadow-glow-accent disabled:opacity-50"
-            disabled={!manualInput.trim()}
-            onClick={addManual}
-            type="button"
-          >
-            <Plus size={18} />
-          </button>
+        <div ref={inputContainerRef} className="relative">
+          <div className="flex gap-2">
+            <input
+              className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none ring-accent-400/60 placeholder:text-moss-100/45 focus:ring-2"
+              inputMode="search"
+              onBlur={() => {
+                // délai pour laisser le clic sur une suggestion se déclencher
+                setTimeout(() => setInputFocused(false), 150);
+              }}
+              onChange={(event) => setManualInput(event.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onKeyDown={handleKeyDown}
+              placeholder="ajouter r/…"
+              value={manualInput}
+            />
+            <button
+              className="grid h-11 w-11 place-items-center rounded-xl bg-accent-400 text-moss-950 shadow-glow-accent disabled:opacity-50"
+              disabled={!manualInput.trim()}
+              onClick={addManual}
+              type="button"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+
+          {showDropdown ? (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-xl border border-white/10 bg-surface-900/95 shadow-xl backdrop-blur-md animate-fade-in">
+              {suggestions.length > 0 ? (
+                <ul ref={suggListRef}>
+                  {suggestions.map((suggestion, index) => (
+                    <li key={suggestion.name}>
+                      <button
+                        data-index={index}
+                        className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                          index === activeIndex ? "bg-accent-400/15" : "hover:bg-white/[0.06]"
+                        }`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          addSuggestion(suggestion.name);
+                        }}
+                        type="button"
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent-400/15 text-[11px] font-bold text-accent-300">
+                          {suggestion.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-white">
+                            r/{highlightMatch(suggestion.name, trimmedInput)}
+                          </p>
+                          <p className="truncate text-xs text-white/50">
+                            {formatSubscribers(suggestion.subscribers)} membres
+                          </p>
+                        </span>
+                        {isSelected(suggestion.name) ? (
+                          <span className="shrink-0 rounded-full bg-accent-400/20 px-2 py-0.5 text-[10px] font-bold text-accent-300">
+                            ✓
+                          </span>
+                        ) : suggestion.nsfw ? (
+                          <span className="shrink-0 rounded-full bg-red-500/80 px-2 py-0.5 text-[10px] font-bold text-white">
+                            NSFW
+                          </span>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : loading ? (
+                <p className="px-3 py-3 text-xs text-white/45">Recherche…</p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -316,5 +459,27 @@ function FeedEditor({ initial, favorites, onCancel, onSave }: FeedEditorProps) {
         </button>
       </div>
     </div>
+  );
+}
+
+function formatSubscribers(count: number): string {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`;
+  return String(count);
+}
+
+function highlightMatch(text: string, query: string): ReactNode {
+  const lower = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const index = lower.indexOf(lowerQuery);
+  if (index === -1) return text;
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark className="bg-transparent font-bold text-accent-300">
+        {text.slice(index, index + query.length)}
+      </mark>
+      {text.slice(index + query.length)}
+    </>
   );
 }
