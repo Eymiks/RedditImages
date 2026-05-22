@@ -7,16 +7,22 @@ export interface SubredditSuggestion {
   nsfw: boolean;
 }
 
-interface RawSubreddit {
-  name?: string;
-  numSubscribers?: number;
-  iconImg?: string;
-  primaryColor?: string;
-  isNsfw?: boolean;
+interface RedditListingChild {
+  kind: string;
+  data: {
+    display_name?: string;
+    subscribers?: number;
+    icon_img?: string;
+    community_icon?: string;
+    over18?: boolean;
+  };
 }
 
 interface RedditAutocompleteResponse {
-  subreddits?: RawSubreddit[];
+  kind: string;
+  data?: {
+    children?: RedditListingChild[];
+  };
 }
 
 export async function fetchSubredditSuggestions(
@@ -38,16 +44,17 @@ export async function fetchSubredditSuggestions(
 
   try {
     const json = (await response.json()) as RedditAutocompleteResponse;
-    const raw = Array.isArray(json.subreddits) ? json.subreddits : [];
-    return raw
-      .map((item): SubredditSuggestion | null => {
-        const name = (item.name ?? "").replace(/^r\//i, "").toLowerCase();
+    const children = json.data?.children ?? [];
+    return children
+      .map((child): SubredditSuggestion | null => {
+        const name = (child.data?.display_name ?? "").replace(/^r\//i, "").toLowerCase();
         if (!name) return null;
+        const icon = child.data.icon_img || child.data.community_icon || null;
         return {
           name,
-          subscribers: Number(item.numSubscribers) || 0,
-          iconUrl: item.iconImg ? item.iconImg : null,
-          nsfw: Boolean(item.isNsfw)
+          subscribers: Number(child.data.subscribers) || 0,
+          iconUrl: icon && icon.length > 0 ? icon : null,
+          nsfw: Boolean(child.data.over18)
         };
       })
       .filter((item): item is SubredditSuggestion => item !== null);
