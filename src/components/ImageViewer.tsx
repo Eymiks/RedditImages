@@ -34,6 +34,11 @@ interface ImageViewerProps {
 }
 
 type VideoRefMap = Map<string, HTMLVideoElement>;
+type ActiveAssetState = {
+  postId: string;
+  assetId: string;
+  isVideo: boolean;
+};
 
 function useAutoHideUi(delayMs: number) {
   const [visible, setVisible] = useState(true);
@@ -82,8 +87,16 @@ export function ImageViewer({
   });
   const videoRefs = useRef<VideoRefMap>(new Map());
   const viewerRef = useRef<HTMLDivElement | null>(null);
+  const bottomOverlayRef = useRef<HTMLDivElement | null>(null);
+  const [bottomOverlayHeight, setBottomOverlayHeight] = useState(132);
+  const [activeAsset, setActiveAsset] = useState<ActiveAssetState | null>(null);
   const currentPost = posts[selectedIndex];
   const ui = useAutoHideUi(3000);
+  const activeVideoKey =
+    currentPost && activeAsset?.postId === currentPost.id && activeAsset.isVideo
+      ? `${activeAsset.postId}:${activeAsset.assetId}`
+      : null;
+  const activeVideo = activeVideoKey ? videoRefs.current.get(activeVideoKey) ?? null : null;
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -115,7 +128,7 @@ export function ImageViewer({
   useEffect(() => {
     if (!currentPost) return;
     videoRefs.current.forEach((video, key) => {
-      const isCurrent = key.startsWith(`${currentPost.id}:`);
+      const isCurrent = activeVideoKey ? key === activeVideoKey : key.startsWith(`${currentPost.id}:`);
       if (isCurrent) {
         video.muted = muted;
         const promise = video.play();
@@ -133,7 +146,7 @@ export function ImageViewer({
         }
       }
     });
-  }, [currentPost, muted]);
+  }, [activeVideoKey, currentPost, muted]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -200,26 +213,58 @@ export function ImageViewer({
     };
   }, [emblaApi]);
 
+  useEffect(() => {
+    const overlay = bottomOverlayRef.current;
+    if (!overlay) return;
+
+    const updateHeight = () => {
+      setBottomOverlayHeight(Math.ceil(overlay.getBoundingClientRect().height));
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(overlay);
+    return () => observer.disconnect();
+  }, [activeVideoKey, currentPost]);
+
   const setVideoRef = useCallback((postId: string, assetId: string, el: HTMLVideoElement | null) => {
     const key = `${postId}:${assetId}`;
     if (el) videoRefs.current.set(key, el);
     else videoRefs.current.delete(key);
   }, []);
 
-  const toggleCurrentVideo = useCallback(() => {
-    if (!currentPost) return false;
-    let toggled = false;
-    videoRefs.current.forEach((video, key) => {
-      if (!key.startsWith(`${currentPost.id}:`)) return;
-      if (video.paused) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
+  const handleActiveAssetChange = useCallback((postId: string, asset: ImageAsset | undefined) => {
+    setActiveAsset((current) => {
+      const next = asset
+        ? {
+            assetId: asset.id,
+            isVideo: asset.kind === "video" && Boolean(asset.url),
+            postId
+          }
+        : null;
+
+      if (
+        current?.postId === next?.postId &&
+        current?.assetId === next?.assetId &&
+        current?.isVideo === next?.isVideo
+      ) {
+        return current;
       }
-      toggled = true;
+
+      return next;
     });
-    return toggled;
-  }, [currentPost]);
+  }, []);
+
+  const toggleCurrentVideo = useCallback(() => {
+    const video = activeVideoKey ? videoRefs.current.get(activeVideoKey) : null;
+    if (!video) return false;
+    if (video.paused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+    return true;
+  }, [activeVideoKey]);
 
   const showToast = useCallback((message: string) => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
@@ -236,8 +281,10 @@ export function ImageViewer({
 
   const toggleMute = useCallback(() => {
     haptic("light");
+    const video = activeVideoKey ? videoRefs.current.get(activeVideoKey) : null;
+    if (video) video.muted = !muted;
     setSetting("viewerMuted", !muted);
-  }, [muted, setSetting]);
+  }, [activeVideoKey, muted, setSetting]);
 
   const handleShare = useCallback(async () => {
     if (!currentPost) return;
@@ -272,8 +319,7 @@ export function ImageViewer({
 
   const saved = currentPost ? isSaved(currentPost.id) : false;
 
-  // Determine if the current post has video (to know if VideoControls shows)
-  const currentHasVideo = currentPost?.assets.some((a) => a.kind === "video" && a.url) ?? false;
+  const currentHasVideo = Boolean(activeVideoKey && activeVideo);
 
   const uiClass = `transition-opacity duration-300 ${
     ui.visible ? "opacity-100" : "pointer-events-none opacity-0"
@@ -310,7 +356,7 @@ export function ImageViewer({
                 isNear={isNear}
                 key={post.id}
                 muted={muted}
-                onToggleMute={toggleMute}
+                onActiveAssetChange={handleActiveAssetChange}
                 onToggleSave={() => handleToggleSave(post)}
                 onToggleVideo={toggleCurrentVideo}
                 onUnmuteIfMuted={() => {
@@ -367,7 +413,10 @@ export function ImageViewer({
 
       {/* Action column — right side */}
       {currentPost ? (
-        <div className={`absolute ${currentHasVideo ? "bottom-44" : "bottom-36"} right-3 z-40 ${uiClass}`}>
+        <div
+          className={`absolute right-3 z-40 ${uiClass}`}
+          style={{ bottom: `${bottomOverlayHeight + 12}px` }}
+        >
           <ActionColumn
             comments={currentPost.numComments}
             muted={muted}
@@ -381,9 +430,21 @@ export function ImageViewer({
         </div>
       ) : null}
 
-      {/* Post info — bottom */}
+      {/* Bottom overlay */}
       {currentPost ? (
-        <div className={`absolute inset-x-0 bottom-0 z-30 ${uiClass}`}>
+        <div
+          className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 ${uiClass}`}
+          ref={bottomOverlayRef}
+        >
+          {currentHasVideo ? (
+            <VideoControls
+              muted={muted}
+              onToggleMute={toggleMute}
+              onTogglePlay={toggleCurrentVideo}
+              video={activeVideo}
+              videoKey={activeVideoKey}
+            />
+          ) : null}
           <PostInfo
             onNavigateToSubreddit={onNavigateToSubreddit ? (sub) => { onClose(); onNavigateToSubreddit(sub); } : undefined}
             post={currentPost}
@@ -400,9 +461,9 @@ interface PostSlideProps {
   isNear: boolean;
   muted: boolean;
   setVideoRef: (postId: string, assetId: string, el: HTMLVideoElement | null) => void;
+  onActiveAssetChange: (postId: string, asset: ImageAsset | undefined) => void;
   onToggleSave: () => void;
   onToggleVideo: () => boolean;
-  onToggleMute: () => void;
   onUnmuteIfMuted: () => void;
 }
 
@@ -412,9 +473,9 @@ function PostSlide({
   isNear,
   muted,
   setVideoRef,
+  onActiveAssetChange,
   onToggleSave,
   onToggleVideo,
-  onToggleMute,
   onUnmuteIfMuted
 }: PostSlideProps) {
   const hasGallery = post.assets.length > 1;
@@ -469,8 +530,10 @@ function PostSlide({
   }, [assetIndex, flashFeedback, muted, onToggleSave, onToggleVideo, onUnmuteIfMuted, post.assets]);
 
   const currentAsset = post.assets[assetIndex];
-  const showVideoControls =
-    isCurrent && currentAsset?.kind === "video" && Boolean(currentAsset.url);
+
+  useEffect(() => {
+    if (isCurrent) onActiveAssetChange(post.id, currentAsset);
+  }, [currentAsset, isCurrent, onActiveAssetChange, post.id]);
 
   return (
     <section className="relative h-[100dvh] w-full shrink-0 grow-0 basis-full bg-black">
@@ -514,17 +577,6 @@ function PostSlide({
             />
           ))}
         </div>
-      ) : null}
-
-      {/* Video controls bar — above PostInfo */}
-      {showVideoControls && currentAsset ? (
-        <VideoControls
-          assetId={currentAsset.id}
-          muted={muted}
-          onToggleMute={onToggleMute}
-          onTogglePlay={onToggleVideo}
-          postId={post.id}
-        />
       ) : null}
 
       {feedbackIcon ? (
@@ -757,7 +809,11 @@ function ActionButton({ active, icon, onClick }: ActionButtonProps) {
           ? "bg-accent-400/20 text-accent-300 ring-accent-400/40"
           : "bg-white/[0.08] text-white/80 ring-white/10"
       }`}
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      onPointerDown={(event) => event.stopPropagation()}
       type="button"
     >
       {icon}
@@ -773,28 +829,36 @@ interface PostInfoProps {
 function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="pointer-events-none bg-gradient-to-t from-black/75 to-transparent px-4 pb-5 pt-14">
-      <div className="mr-14 flex flex-col gap-0.5">
-        <div className="flex items-baseline gap-1.5 flex-wrap">
+    <div className="pointer-events-none bg-gradient-to-t from-black via-black/65 to-transparent px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-8">
+      <div className="flex max-w-full flex-col gap-2 pr-16">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           {onNavigateToSubreddit ? (
             <button
-              className="pointer-events-auto text-[11px] font-bold text-accent-300 active:opacity-70"
+              className="pointer-events-auto inline-flex max-w-[170px] items-center rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-bold text-accent-200 ring-1 ring-white/10 backdrop-blur-md active:scale-95"
               onClick={() => { haptic("light"); onNavigateToSubreddit(post.subreddit); }}
+              onPointerDown={(event) => event.stopPropagation()}
               type="button"
             >
-              r/{post.subreddit}
+              <span className="truncate">r/{post.subreddit}</span>
             </button>
           ) : (
-            <span className="text-[11px] font-bold text-accent-300/80">r/{post.subreddit}</span>
+            <span className="inline-flex max-w-[170px] items-center rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-bold text-accent-200 ring-1 ring-white/10 backdrop-blur-md">
+              <span className="truncate">r/{post.subreddit}</span>
+            </span>
           )}
           {post.author && post.author !== "unknown" ? (
-            <span className="text-[11px] text-white/35 font-medium truncate max-w-[140px]">
-              · {post.author}
+            <span className="min-w-0 max-w-[150px] truncate text-[11px] font-medium text-white/50">
+              u/{post.author}
+            </span>
+          ) : null}
+          {post.nsfw ? (
+            <span className="rounded-full bg-red-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-200 ring-1 ring-red-300/20">
+              NSFW
             </span>
           ) : null}
         </div>
         <p
-          className={`text-[14px] font-semibold leading-[1.35] text-white/95 [text-shadow:0_1px_6px_rgba(0,0,0,0.8)] ${
+          className={`text-[15px] font-semibold leading-[1.3] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.75)] ${
             expanded ? "" : "line-clamp-2"
           }`}
         >
@@ -802,8 +866,13 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
         </p>
         {post.title.length > 80 ? (
           <button
-            className="pointer-events-auto mt-0.5 text-[10px] font-medium text-white/30"
-            onClick={() => setExpanded((v) => !v)}
+            className="pointer-events-auto w-fit text-[11px] font-semibold text-white/60 active:text-white"
+            onClick={(event) => {
+              event.stopPropagation();
+              haptic("light");
+              setExpanded((v) => !v);
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
             type="button"
           >
             {expanded ? "Réduire" : "Voir plus"}
@@ -815,28 +884,30 @@ function PostInfo({ post, onNavigateToSubreddit }: PostInfoProps) {
 }
 
 interface VideoControlsProps {
-  postId: string;
-  assetId: string;
   muted: boolean;
   onToggleMute: () => void;
   onTogglePlay: () => boolean;
+  video: HTMLVideoElement | null;
+  videoKey: string | null;
 }
 
-function VideoControls({ postId, assetId, muted, onToggleMute, onTogglePlay }: VideoControlsProps) {
+function VideoControls({ muted, onToggleMute, onTogglePlay, video, videoKey }: VideoControlsProps) {
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isScrubbing, setIsScrubbing] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const draggingRef = useRef(false);
 
   useEffect(() => {
-    const video = document.querySelector<HTMLVideoElement>(
-      `video[data-key="${postId}:${assetId}"]`
-    );
-    if (!video) return;
-    videoRef.current = video;
+    if (!video) {
+      setProgress(0);
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+      return;
+    }
 
     const syncState = () => {
       setIsPlaying(!video.paused);
@@ -860,13 +931,17 @@ function VideoControls({ postId, assetId, muted, onToggleMute, onTogglePlay }: V
     const onPlay = () => { setIsPlaying(true); rafId = window.requestAnimationFrame(tick); };
     const onPause = () => { setIsPlaying(false); window.cancelAnimationFrame(rafId); syncState(); };
     const onSeeked = () => syncState();
+    const onTimeUpdate = () => syncState();
     const onDurationChange = () => {
       if (Number.isFinite(video.duration)) setDuration(video.duration);
+      syncState();
     };
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("seeked", onSeeked);
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("loadedmetadata", onDurationChange);
     video.addEventListener("durationchange", onDurationChange);
 
     if (!video.paused && !video.ended) {
@@ -880,82 +955,118 @@ function VideoControls({ postId, assetId, muted, onToggleMute, onTogglePlay }: V
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("loadedmetadata", onDurationChange);
       video.removeEventListener("durationchange", onDurationChange);
-      videoRef.current = null;
     };
-  }, [assetId, postId]);
+  }, [video, videoKey]);
 
   const scrubTo = useCallback(
     (clientX: number) => {
       const container = containerRef.current;
-      const video = videoRef.current;
       if (!container || !video) return;
       const rect = container.getBoundingClientRect();
       const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      if (Number.isFinite(video.duration)) {
+      if (Number.isFinite(video.duration) && video.duration > 0) {
         video.currentTime = ratio * video.duration;
         setProgress(ratio * 100);
         setCurrentTime(ratio * video.duration);
       }
     },
-    []
+    [video]
   );
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-[35] px-4 pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] pt-4">
-      <div className="flex items-center gap-2.5">
+    <div
+      className="pointer-events-auto px-4 pb-0 pt-2"
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+      style={{ touchAction: "none" }}
+    >
+      <div className="flex min-h-9 items-center gap-2">
         <button
           aria-label={isPlaying ? "Pause" : "Lecture"}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 transition-transform active:scale-95"
-          onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
-          onPointerDown={(e) => e.stopPropagation()}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.05] text-white/65 transition-[background-color,color,transform] active:scale-95 active:bg-white/10 active:text-white"
+          onClick={(event) => {
+            event.stopPropagation();
+            onTogglePlay();
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
           type="button"
         >
-          {isPlaying ? <Pause fill="currentColor" size={16} /> : <Play fill="currentColor" size={16} />}
+          {isPlaying ? <Pause fill="currentColor" size={14} /> : <Play fill="currentColor" size={14} />}
         </button>
 
         <div
-          className="relative h-11 min-w-0 flex-1 cursor-pointer"
-          onPointerCancel={() => (draggingRef.current = false)}
+          className="relative h-9 min-w-0 flex-1 cursor-pointer"
+          onPointerCancel={(event) => {
+            event.stopPropagation();
+            draggingRef.current = false;
+            setIsScrubbing(false);
+          }}
           onPointerDown={(event) => {
+            event.preventDefault();
             event.stopPropagation();
             draggingRef.current = true;
-            event.currentTarget.setPointerCapture(event.pointerId);
+            setIsScrubbing(true);
+            try {
+              event.currentTarget.setPointerCapture(event.pointerId);
+            } catch {
+              // Capture can fail if the pointer has already been released.
+            }
             scrubTo(event.clientX);
           }}
           onPointerMove={(event) => {
-            if (draggingRef.current) scrubTo(event.clientX);
+            if (!draggingRef.current) return;
+            event.preventDefault();
+            event.stopPropagation();
+            scrubTo(event.clientX);
           }}
           onPointerUp={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
             draggingRef.current = false;
-            event.currentTarget.releasePointerCapture(event.pointerId);
+            setIsScrubbing(false);
+            try {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            } catch {
+              // Already released.
+            }
           }}
           ref={containerRef}
+          style={{ touchAction: "none" }}
         >
-          <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
+          <div
+            className={`absolute inset-x-0 top-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-white/12 transition-[height,background-color] ${
+              isScrubbing ? "h-[3px] bg-white/18" : "h-0.5"
+            }`}
+          >
             <div
-              className="h-full rounded-full bg-accent-400"
+              className="h-full rounded-full bg-accent-300/80"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
         {duration > 0 ? (
-          <span className="shrink-0 text-[10px] tabular-nums text-white/50">
+          <span className="w-[58px] shrink-0 text-right text-[9px] tabular-nums text-white/38">
             {formatTime(currentTime)}
-            <span className="text-white/25"> / </span>
+            <span className="text-white/18"> / </span>
             {formatTime(duration)}
           </span>
         ) : null}
 
         <button
           aria-label={muted ? "Activer le son" : "Couper le son"}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 transition-transform active:scale-95"
-          onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
-          onPointerDown={(e) => e.stopPropagation()}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.05] text-white/65 transition-[background-color,color,transform] active:scale-95 active:bg-white/10 active:text-white"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleMute();
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
           type="button"
         >
-          {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
         </button>
       </div>
     </div>

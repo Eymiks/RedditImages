@@ -55,9 +55,13 @@ export function useSettings() {
     setSettings((current) => ({ ...current, [key]: value }));
   }, []);
 
+  const replace = useCallback((nextSettings: Settings) => {
+    setSettings(nextSettings);
+  }, []);
+
   const toggle = useCallback((key: keyof Settings) => {
     setSettings((current) => ({ ...current, [key]: !current[key] }));
   }, []);
 
-  return { settings, set, toggle };
+  return { settings, set, replace, toggle };
 }
