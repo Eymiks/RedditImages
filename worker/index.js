@@ -1,4 +1,4 @@
-const REDDIT_ORIGIN = "https://old.reddit.com";
+const REDDIT_ORIGIN = "https://www.reddit.com";
 const REDGIFS_API_BASE = "https://api.redgifs.com";
 const REDGIFS_MEDIA_BASE = "https://media.redgifs.com";
 const REDGIFS_MEDIA_FILENAME = /^[A-Za-z0-9-]+(?:\.(?:mp4|m4v|webm|jpg|jpeg|webp|png))$/;
