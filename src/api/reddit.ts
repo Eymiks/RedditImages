@@ -138,12 +138,7 @@ async function fetchDirect(url: URL): Promise<Response | null> {
     });
     const contentType = response.headers.get("Content-Type") ?? "";
 
-    if (
-      response.ok ||
-      response.status === 404 ||
-      response.status === 429 ||
-      contentType.includes("application/json")
-    ) {
+    if (response.ok || response.status === 404 || response.status === 429) {
       return response;
     }
   } catch {
