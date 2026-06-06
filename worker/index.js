@@ -2,7 +2,7 @@ const REDDIT_ORIGIN = "https://www.reddit.com";
 const REDGIFS_API_BASE = "https://api.redgifs.com";
 const REDGIFS_MEDIA_BASE = "https://media.redgifs.com";
 const REDGIFS_MEDIA_FILENAME = /^[A-Za-z0-9-]+(?:\.(?:mp4|m4v|webm|jpg|jpeg|webp|png))$/;
-const USER_AGENT = "MyRedditImageApp/1.0";
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 const redditMemoryCache = new Map();
 
 export default {
@@ -42,8 +42,12 @@ async function handleReddit(url) {
 
   const response = await fetch(redditUrl, {
     headers: {
-      Accept: "application/json",
-      "User-Agent": USER_AGENT
+      Accept: "application/json, text/plain, */*",
+      "Accept-Language": "en-US,en;q=0.9",
+      "User-Agent": USER_AGENT,
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Site": "same-origin"
     }
   });
 
