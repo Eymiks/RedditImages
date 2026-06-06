@@ -1,4 +1,4 @@
-const PUBLIC_BASE = "https://old.reddit.com";
+const PUBLIC_BASE = "https://www.reddit.com";
 
 export interface SubredditSuggestion {
   name: string;

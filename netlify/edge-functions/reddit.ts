@@ -1,4 +1,4 @@
-const REDDIT_ORIGIN = "https://old.reddit.com";
+const REDDIT_ORIGIN = "https://www.reddit.com";
 const USER_AGENT = "MyRedditImageApp/1.0";
 const redditCache = new Map<string, { body: string; savedAt: number }>();
 
